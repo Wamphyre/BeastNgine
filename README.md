@@ -57,4 +57,4 @@ Don't forget to install htop, git, nano, curl and wget: pkg install curl wget ht
 
 13 - You can install wordpress inside a directory on public_html with the autowordpress.sh script
 
-14 - You can make backups, with the backup_creator.sh script
+14 - You can make backups of your Wordpress (with sql database included), with the backup_creator.sh script
