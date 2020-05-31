@@ -8,7 +8,7 @@ sleep 1
 
 echo ""
 
-echo ; read -p "Dime dominio a instalar el certificado SSL: " DOMINIO;
+echo ; read -p "Give me a domain for SSL key: " DOMINIO;
 
 echo ""
 
@@ -64,4 +64,4 @@ sleep 3
 
 service varnishd restart
 
-echo "Completado. Espera unos minutos y revisa tu dominio"
+echo "Process completed"
