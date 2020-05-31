@@ -50,11 +50,11 @@ pkg install -y libxml2 libxslt modsecurity3 python git binutils pcre libgd openl
 
 echo ""
 
-echo "COMPILING NGINX, PLEASE SELECT MODSECURITY3 AND BROTLI MODULES"
+echo "INSTALLING NGINX MODSECURITY3 AND BROTLI MODULES"
 
 sleep 5
 
-cd /usr/ports/www/nginx-devel/ && make install clean
+fetch https://github.com/Wamphyre/BeastNgine/blob/master/nginx-devel-1.19.0.txz?raw=true && pkg install -y nginx-devel-1.19.0.txz
 
 cd /tmp
 
