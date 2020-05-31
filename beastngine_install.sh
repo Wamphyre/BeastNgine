@@ -2,7 +2,7 @@
 
 clear
 
-echo "=====AUTOSERVER====="
+echo "=====BeastNgine Server for FreeBSD====="
 
 echo "----------------------by Wamphyre"
 
@@ -10,7 +10,7 @@ echo ""
 
 sleep 3
 
-echo "Actualizando paquetes...";
+echo "Updating packages...";
 
 echo ""
 
@@ -18,17 +18,17 @@ pkg update && pkg upgrade -y ;
 
 echo ""
 
-echo "Paquetes actualizados" 
+echo "Packages updated" 
 
 echo ""
 
-echo "Extrayendo ports..."
+echo "Extracting ports..."
 
 echo ""
 
 portsnap fetch auto
 
-echo "INSTALANDO VARNISH + CERTBOT + PHP74 + MARIADB"
+echo "INSTALLING VARNISH + CERTBOT + PHP74 + MARIADB"
 
 pkg install -y php74 php74-mysqli php74-session php74-xml php74-hash php74-ftp php74-curl php74-tokenizer php74-zlib php74-zip php74-filter php74-gd php74-openssl php74-pdo php74-bcmath php74-exif php74-fileinfo php74-pecl-imagick-im7 php74-curl
 
@@ -50,7 +50,7 @@ pkg install -y libxml2 libxslt modsecurity3 python git binutils pcre libgd openl
 
 echo ""
 
-echo "COMPILANDO NGINX, SELECCIONA MODULO MODSECURITY3"
+echo "COMPILING NGINX, PLEASE SELECT MODSECURITY3 MODULE"
 
 sleep 5
 
@@ -74,9 +74,9 @@ mv /usr/local/etc/modsecurity/crs/REQUEST-901-INITIALIZATION.conf /usr/local/etc
 
 cd /usr/local/etc/modsecurity
 
-fetch https://raw.githubusercontent.com/Wamphyre/AutoTools/master/ip_blacklist.txt
+fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/ip_blacklist.txt
 
-fetch https://raw.githubusercontent.com/Wamphyre/AutoTools/master/ip_blacklist.conf
+fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/ip_blacklist.conf
 
 cd /usr/local/etc/modsecurity && touch unicode.mapping
 
@@ -104,7 +104,7 @@ echo "1250  (ANSI - Central Europe)
  
 sed -ie 's/^\s*SecRuleEngine DetectionOnly/SecRuleEngine On/' /usr/local/etc/modsecurity/modsecurity.conf
 
-echo "Configurando Stack..."
+echo "Configuring Server Stack..."
 
 sysrc nginx_enable="YES"
 
@@ -126,11 +126,11 @@ mv /usr/local/etc/nginx/mime.types /usr/local/etc/nginx/mime.types_bk
 
 mv /usr/local/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf_bk
 
-cd /usr/local/etc/php-fpm.d/ && fetch https://raw.githubusercontent.com/Wamphyre/AutoTools/master/www.conf
+cd /usr/local/etc/php-fpm.d/ && fetch https://github.com/Wamphyre/BeastNgine/blob/master/www.conf
 
-cd /usr/local/etc/nginx/ && fetch https://raw.githubusercontent.com/Wamphyre/AutoTools/master/nginx.conf
+cd /usr/local/etc/nginx/ && fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/nginx.conf
 
-cd /usr/local/etc/nginx/ && fetch https://raw.githubusercontent.com/Wamphyre/AutoTools/master/mime.types
+cd /usr/local/etc/nginx/ && fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/mime.types
 
 mkdir conf.d
 
@@ -213,7 +213,7 @@ service varnishd start
 
 mv /usr/local/etc/php.ini-production /usr/local/etc/php.ini-production_bk
 
-cd /usr/local/etc/ && fetch https://raw.githubusercontent.com/Wamphyre/AutoTools/master/php.ini
+cd /usr/local/etc/ && fetch https://github.com/Wamphyre/BeastNgine/blob/master/php.ini
 
 mkdir /usr/local/www/public_html/
 
@@ -233,9 +233,9 @@ sleep 5
 
 /usr/local/bin/mysql_secure_installation
 
-echo ; read -p "¿Quieres instalar phpmyadmin?: (si/no) " PHPMYADMIN;
+echo ; read -p "Want to install phpmyadmin?: (yes/no) " PHPMYADMIN;
 
-if [ "$PHPMYADMIN" = "si" ] 
+if [ "$PHPMYADMIN" = "yes" ] 
 
 then cd /usr/local/www/public_html/;
 
@@ -249,11 +249,11 @@ service php-fpm restart
 
 cd;
 
-else echo "No se instalará phpmyadmin" 
+else echo "Ignoring phpmyadmin installation" 
 
 fi
 
-echo "Aplicando hardening y tuning de rendimiento"
+echo "Aplying hardening and system tuning"
 
 echo ""
 
@@ -315,7 +315,7 @@ echo 'net.inet.ip.random_id=1' >> /etc/sysctl.conf
 
 echo ""
 
-echo "Optimizando stack de red de FreeBSD"
+echo "Optimizing FreeBSD network stack settings"
 
 echo ""
 
@@ -360,7 +360,7 @@ echo 'if_igb_load="YES"' >> /boot/loader.conf
 
 echo ""
 
-echo "Actualizando microcódigo de la CPU"
+echo "Updating CPU microcode"
 
 echo ""
 
@@ -372,17 +372,17 @@ service microcode_update start
 
 echo ""
 
-echo "Microcódigo actualizado"
+echo "Microcode updated"
 
 echo ""
 
-echo "Añadiendo y configurando reglas estrictas para el Firewall PF"
+echo "Setting up PF firewall"
 
 echo ""
 
 touch /etc/pf.conf
 
-echo "Mostrando interfaces de red disponibles"
+echo "Showing network interfaces"
 
 echo ""
 
@@ -390,7 +390,7 @@ ifconfig | grep :
 
 echo ""
 
-echo ; read -p "¿Para qué interfaz quieres configurar las reglas?: " INTERFAZ;
+echo ; read -p "Please, select a network interface: " INTERFAZ;
 
 echo ""
 
@@ -438,11 +438,11 @@ echo ""
 kldload pf
 service sshguard start
 
-echo "Reglas añadidas al firewall y configuradas para la interfaz $INTERFAZ"
+echo "Firewall rules configured for $INTERFAZ"
 
 echo ""
 
-echo "Limpiando sistema..."
+echo "Cleaning system..."
 
 echo ""
 
@@ -450,4 +450,4 @@ pkg clean -y && pkg autoremove -y
 
 echo ""
 
-echo "Instalación finalizada. Reinicia el servidor"
+echo "Installation finished, please restart your system"
