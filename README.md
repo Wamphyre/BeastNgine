@@ -53,7 +53,7 @@ Don't forget to install htop, git, nano, curl and wget: pkg install curl wget ht
 
 11 - You can repair permissions on the public directory (/usr/local/www/public_html) with the repair_permissions.sh script
 
-12 - You can optimize images of your website with the image_optimizer.sh script
+12 - You can optimize images of your website with the image_optimizer.sh script, with: bash image_optimizer.sh
 
 13 - You can install wordpress inside a directory on public_html with the autowordpress.sh script
 
