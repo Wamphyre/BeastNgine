@@ -50,7 +50,7 @@ pkg install -y libxml2 libxslt modsecurity3 python git binutils pcre libgd openl
 
 echo ""
 
-echo "COMPILING NGINX, PLEASE SELECT MODSECURITY3 MODULE"
+echo "COMPILING NGINX, PLEASE SELECT MODSECURITY3 AND BROTLI MODULES"
 
 sleep 5
 
