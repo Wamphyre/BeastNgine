@@ -2,7 +2,7 @@
 
 clear
 
-echo "Mostrando interfaces de red disponibles"
+echo "Showing net interfaces"
 
 echo ""
 
@@ -10,7 +10,7 @@ ifconfig | grep :
 
 echo ""
 
-echo ; read -p "¿Para qué interfaz quieres configurar las reglas?: " INTERFAZ;
+echo ; read -p "Please, select a network interface: " INTERFAZ;
 
 echo ""
 
@@ -20,7 +20,7 @@ touch /etc/pf.conf
 
 echo '
 
-#MODO ATAQUE ACTIVADO
+#ATTACK MODE ACTIVATED
 # the external network interface to the internet
 ext_if="'$INTERFAZ'"
 # port on which sshd is running
@@ -34,4 +34,4 @@ service pf reload
 
 echo ""
 
-echo "MODO ATAQUE ACTIVADO"
+echo "ATTACK MODE ACTIVATED, BLOCKING ALL TRAFFIC"
