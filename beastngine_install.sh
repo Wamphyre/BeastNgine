@@ -54,7 +54,13 @@ echo "INSTALLING NGINX WITH MODSECURITY3 AND BROTLI MODULES"
 
 sleep 5
 
-fetch https://github.com/Wamphyre/BeastNgine/blob/master/nginx-devel-1.19.0.txz?raw=true && pkg install -y nginx-devel-1.19.0.txz
+cd
+
+fetch https://github.com/Wamphyre/BeastNgine/raw/master/nginx-devel-1.19.0.txz && pkg install -y nginx-devel-1.19.0.txz
+
+sleep 3
+
+rm -rf nginx-devel-1.19.0.txz
 
 cd /tmp
 
