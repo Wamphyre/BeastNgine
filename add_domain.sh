@@ -2,13 +2,13 @@
 
 clear
 
-echo "Vamos a crear un nuevo VHOST"
+echo "We will create a new VHOST"
 
 echo ""
 
 sleep 1
 
-echo ; read -p "Dime dominio a añadir: " DOMINIO
+echo ; read -p "Please, give me a domain: " DOMINIO
 
 cd /usr/local/etc/nginx/conf.d && touch $DOMINIO.conf
 
@@ -113,11 +113,11 @@ index index.php index.html;
 }
 " >> $DOMINIO.conf
 
-echo "VHOST para $DOMINIO creado correctamente"
+echo "VHOST for $DOMINIO created"
 
 echo ""
 
-echo "Reiniciando NGINX"
+echo "Restarting NGINX"
 
 sleep 2
 
@@ -127,4 +127,4 @@ service php-fpm restart
 
 echo ""
 
-echo "Completado"
+echo "Complete"
