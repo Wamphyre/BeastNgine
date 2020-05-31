@@ -2,7 +2,7 @@
 
 clear
 
-echo "Mostrando interfaces de red disponibles"
+echo "Showing net interfaces"
 
 echo ""
 
@@ -10,7 +10,7 @@ ifconfig | grep :
 
 echo ""
 
-echo ; read -p "¿Para qué interfaz quieres configurar las reglas?: " INTERFAZ;
+echo ; read -p "Please, select a network interface: " INTERFAZ;
 
 echo ""
 
@@ -59,4 +59,4 @@ service pf reload
 
 echo ""
 
-echo "MODO ATAQUE DESACTIVADO"
+echo "ATTACK MODE DEACTIVATED"
