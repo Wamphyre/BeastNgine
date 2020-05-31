@@ -31,13 +31,18 @@ server_name $DOMINIO;
 root /usr/local/www/public_html/$DOMINIO;
 index index.php index.html;
 
+   #Brotli settings
+   brotli on;
+   brotli_comp_level 6;   
+   brotli_types text/plain text/css application/json application/javascript application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+
    #Gzip settings
-    gzip             on;
-    gzip_comp_level  5;
-    gzip_min_length  256;
-    gzip_proxied     expired no-cache no-store private auth;
-    gzip_types       text/plain application/x-javascript text/xml text/css application/xml;
-    gzip_vary on;
+#    gzip             on;
+#    gzip_comp_level  5;
+#    gzip_min_length  256;
+#    gzip_proxied     expired no-cache no-store private auth;
+#    gzip_types       text/plain application/x-javascript text/xml text/css application/xml;
+#    gzip_vary on;
 
     # Static resources
     location ~* \.(ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|css|rss|atom|js|jpg|jpeg|gif|png|ico|zip|tgz|gz|rar|bz2|doc|xls|exe|ppt|tar|mid|midi|wav|bmp|rtf)\$ {
