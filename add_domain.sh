@@ -43,7 +43,7 @@ index index.php index.html;
 
    # Upload limit
    client_max_body_size 2048m;
-   client_body_buffer_size 128k;
+   client_body_buffer_size 512k;
 
     # Initialize the variable that specified to skip the cache
     set \$skip_cache 0;
