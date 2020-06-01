@@ -46,6 +46,10 @@ cd /usr/ports/security/sshguard
 
 make install clean BATCH=yes
 
+mv /usr/local/etc/sshguard.conf /usr/local/etc/sshguard_bk
+
+cd /usr/local/etc/ && fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/sshguard.conf
+
 pkg install -y libxml2 libxslt modsecurity3 python git binutils pcre libgd openldap-client
 
 echo ""
