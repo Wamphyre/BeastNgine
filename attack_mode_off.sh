@@ -25,7 +25,7 @@ ext_if="'$INTERFAZ'"
 # port on which sshd is running
 ssh_port = "3333"
 # allowed inbound ports (services hosted by this machine)
-inbound_tcp_services = "{80, 21, 25, 3333}"
+inbound_tcp_services = "{80, 443, 21, 25, 3333}"
 inbound_udp_services = "{80, 8080, 443}"
 # politely send TCP RST for blocked packets. The alternative is
 # "set block-policy drop", which will cause clients to wait for a timeout
