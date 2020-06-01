@@ -1,4 +1,7 @@
 # BeastNgine
+
+![Image of BeastNgine logo](https://beastngine.com/wp-content/uploads/2020/05/facebook_profile_image-300x300.png)
+
 Engintron inspired implementation of Varnish, Nginx, Brotli, php-fpm, certbot and modsecurity for FreeBSD
 
 This only installs a very customized, secure and optimized web server stack, especially oriented to Wordpress installations
