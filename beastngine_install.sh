@@ -60,11 +60,11 @@ sleep 5
 
 cd
 
-fetch https://github.com/Wamphyre/BeastNgine/raw/master/nginx-devel-1.19.0.txz && pkg install -y nginx-devel-1.19.0.txz
+fetch https://github.com/Wamphyre/BeastNgine/raw/master/nginx-devel-1.19.0_1.txz && pkg install -y nginx-devel-1.19.0_1.txz
 
 sleep 3
 
-rm -rf nginx-devel-1.19.0.txz
+rm -rf nginx-devel-1.19.0_1.txz
 
 cd /tmp
 
