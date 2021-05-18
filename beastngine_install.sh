@@ -223,7 +223,7 @@ service varnishd start
 
 mv /usr/local/etc/php.ini-production /usr/local/etc/php.ini-production_bk
 
-cd /usr/local/etc/ && fetch https://github.com/Wamphyre/BeastNgine/blob/master/php.ini
+cd /usr/local/etc/ && fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/php.ini
 
 mkdir /usr/local/www/public_html/
 
