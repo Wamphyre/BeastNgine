@@ -10,11 +10,11 @@ echo ""
 
 sleep 3
 
-echo "Updating packages...";
+echo "Updating packages..."
 
 echo ""
 
-pkg update && pkg upgrade -y ;
+pkg update && pkg upgrade -y 
 
 echo ""
 
@@ -28,15 +28,15 @@ echo ""
 
 portsnap fetch auto
 
-echo "INSTALLING VARNISH + CERTBOT + PHP74 + MARIADB"
+echo "INSTALLING VARNISH + CERTBOT + PHP80 + MARIADB + SSHGUARD"
 
-pkg install -y php74 php74-mysqli php74-session php74-xml php74-hash php74-ftp php74-curl php74-tokenizer php74-zlib php74-zip php74-filter php74-gd php74-openssl php74-pdo php74-bcmath php74-exif php74-fileinfo php74-pecl-imagick-im7 php74-curl
+pkg install -y php80 php80-mysqli php80-session php80-xml php80-hash php80-ftp php80-curl php80-tokenizer php80-zlib php80-zip php80-filter php80-gd php80-openssl php80-pdo php80-bcmath php80-exif php80-fileinfo php80-pecl-imagick-im7 php80-curl
 
-pkg install -y mariadb103-client mariadb103-server
+pkg install -y mariadb105-client mariadb105-server
 
-pkg install -y py37-certbot-nginx
+pkg install -y py38-certbot-nginx
 
-pkg install -y py37-salt
+pkg install -y py38-salt
 
 pkg install -y nano htop git libtool automake autoconf curl geoip
 
@@ -60,11 +60,11 @@ sleep 5
 
 cd
 
-fetch https://github.com/Wamphyre/BeastNgine/raw/master/nginx-devel-1.19.1_3.txz && pkg install -y nginx-devel-1.19.1_3.txz
+fetch https://github.com/Wamphyre/BeastNgine/raw/master/nginx-devel-1.20.0.txz && pkg install -y nginx-devel-1.20.0.txz
 
 sleep 3
 
-rm -rf nginx-devel-1.19.1_3.txz
+rm -rf nginx-devel-1.20.0.txz
 
 cd /tmp
 
@@ -249,7 +249,7 @@ if [ "$PHPMYADMIN" = "yes" ]
 
 then cd /usr/local/www/public_html/;
 
-pkg install -y phpMyAdmin-php74
+pkg install -y phpMyAdmin-php80
 
 ln -s /usr/local/www/phpMyAdmin/ /usr/local/www/public_html/phpmyadmin
 
