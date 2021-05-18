@@ -28,7 +28,7 @@ service nginx restart
 
 sleep 3
 
-certbot-3.7 --nginx -d $DOMINIO
+certbot-3.8 --nginx -d $DOMINIO
 
 echo ""
 
@@ -38,7 +38,7 @@ sleep 2
 
 echo ""
 
-certbot-3.7 enhance --hsts -d $DOMINIO
+certbot-3.8 enhance --hsts -d $DOMINIO
 
 echo ""
 
