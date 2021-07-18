@@ -26,7 +26,7 @@ server {
 listen 8080;
 listen [::]:8080;
 
-server_name $DOMINIO;
+server_name $DOMINIO www.$DOMINIO;
 
 root /usr/local/www/public_html/$DOMINIO;
 index index.php index.html;
