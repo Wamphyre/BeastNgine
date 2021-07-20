@@ -30,7 +30,7 @@ portsnap fetch auto
 
 echo "INSTALLING VARNISH + CERTBOT + PHP80 + MARIADB + SSHGUARD"
 
-pkg install -y php80 php80-mysqli php80-session php80-xml php80-ftp php80-curl php80-tokenizer php80-zlib php80-zip php80-filter php80-gd php80-openssl php80-pdo php80-bcmath php80-exif php80-fileinfo php80-opcache php80-pecl-imagick-im7 php80-curl
+pkg install -y php80 php80-mysqli php80-session php80-xml php80-ftp php80-curl php80-tokenizer php80-zlib php80-zip php80-filter php80-gd php80-openssl php80-pdo php80-bcmath php80-exif php80-fileinfo php80-opcache php80-pecl-redis php80-pecl-imagick-im7 php80-curl
 
 pkg install -y mariadb105-client mariadb105-server
 
