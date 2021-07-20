@@ -42,6 +42,8 @@ pkg install -y nano htop git libtool automake autoconf curl geoip
 
 pkg install -y varnish6
 
+pkg install -y redis
+
 cd /usr/ports/security/sshguard
 
 make install clean BATCH=yes
@@ -109,6 +111,8 @@ sysrc varnishd_backend="localhost:8080"
 sysrc varnishd_storage="malloc,512M"
 
 sysrc varnishd_admin=":8081"
+
+sysrc redis_enable="YES"
 
 mkdir /usr/local/etc/varnish && cd /usr/local/etc/varnish && fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/wordpress.vcl
 
@@ -202,6 +206,8 @@ location ~ /\. { access_log off; log_not_found off; deny all; }
 service nginx start
 
 service varnishd start
+
+service redis start
 
 mv /usr/local/etc/php.ini-production /usr/local/etc/php.ini-production_bk
 
