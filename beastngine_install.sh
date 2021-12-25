@@ -30,7 +30,7 @@ portsnap fetch auto
 
 echo "INSTALLING VARNISH + CERTBOT + PHP80 + MARIADB + SSHGUARD"
 
-pkg install -y php80 php80-mysqli php80-session php80-xml php80-ftp php80-curl php80-tokenizer php80-zlib php80-zip php80-filter php80-gd php80-openssl php80-pdo php80-bcmath php80-exif php80-fileinfo php80-opcache php80-pecl-redis php80-ctype php80-pecl-imagick-im7 php80-curl
+pkg install -y php80 php80-mysqli php80-session php80-xml php80-ftp php80-curl php80-tokenizer php80-zlib php80-zip php80-filter php80-gd php80-openssl php80-pdo php80-bcmath php80-exif php80-fileinfo php80-opcache php80-pecl-redis php80-ctype php80-pecl-imagick-im7 php80-curl php80-mbstring php80-dom php80-iconv
 
 pkg install -y mariadb105-client mariadb105-server
 
@@ -231,26 +231,6 @@ sleep 5
 
 /usr/local/bin/mysql_secure_installation
 
-echo ; read -p "Want to install phpmyadmin?: (yes/no) " PHPMYADMIN;
-
-if [ "$PHPMYADMIN" = "yes" ] 
-
-then cd /usr/local/www/public_html/;
-
-pkg install -y phpMyAdmin-php80
-
-ln -s /usr/local/www/phpMyAdmin/ /usr/local/www/public_html/phpmyadmin
-
-service nginx restart
-
-service php-fpm restart
-
-cd;
-
-else echo "Ignoring phpmyadmin installation" 
-
-fi
-
 echo "Aplying hardening and system tuning"
 
 echo ""
@@ -273,6 +253,7 @@ echo 'hw.snd.maxautovchans=32' >> /etc/sysctl.conf
 echo 'vfs.lorunningspace=1048576' >> /etc/sysctl.conf
 echo 'vfs.hirunningspace=5242880' >> /etc/sysctl.conf
 echo 'kern.ipc.shm_allow_removed=1' >> /etc/sysctl.conf
+
 echo 'hw.snd.vpc_autoreset=0' >> /boot/loader.conf
 echo 'hw.syscons.bell=0' >> /boot/loader.conf
 echo 'hw.usb.no_pf=1' >> /boot/loader.conf
@@ -291,12 +272,15 @@ sysrc pflog_logfile="/var/log/pflog"
 sysrc pflog_flags=""
 sysrc ntpd_enable="YES"
 sysrc ntpdate_enable="YES"
-sysrc powerd_enable="YES"
-sysrc powerd_flags="-a hiadaptive"
-performance_cpu_freq="HIGH"
+sysrc performance_cx_lowest="Cmax"
+sysrc economy_cx_lowest="Cmax"
 sysrc clear_tmp_enable="YES"
 sysrc syslogd_flags="-ss"
-sysrc sendmail_enable="YES"
+sysrc sendmail_submit_enable="NO"
+sysrc sendmail_msp_queue_enable="NO"
+sysrc sendmail_outbound_enable="NO"
+sysrc sendmail_enable="NO"
+
 sysrc dumpdev="NO"
 sysrc sshguard_enable="YES"
 
