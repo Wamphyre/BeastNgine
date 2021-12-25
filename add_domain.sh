@@ -14,8 +14,6 @@ cd /usr/local/etc/nginx/conf.d && touch $DOMINIO.conf
 
 mkdir /usr/local/www/public_html/$DOMINIO
 
-ln -s /usr/local/www/phpMyAdmin/ /usr/local/www/public_html/$DOMINIO/phpmyadmin
-
 chown -R www:www /usr/local/www/public_html/$DOMINIO
 
 echo ""
