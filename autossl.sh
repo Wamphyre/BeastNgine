@@ -16,9 +16,8 @@ service varnishd stop
 
 sleep 3
 
-sed -ie 's/^\s*listen 8080/listen 80/' /usr/local/etc/nginx/nginx.conf
-
-sed -ie 's/^\s*listen 8080/listen 80/' /usr/local/etc/nginx/conf.d/$DOMINIO.conf
+sed -i '' -e 's/^[[:space:]]*listen 8080/listen 80/' /usr/local/etc/nginx/nginx.conf
+sed -i '' -e 's/^[[:space:]]*listen 8080/listen 80/' /usr/local/etc/nginx/conf.d/$DOMINIO.conf
 
 rm -rf /usr/local/etc/nginx/nginx.confe
 
@@ -28,7 +27,7 @@ service nginx restart
 
 sleep 3
 
-certbot-3.8 --nginx -d $DOMINIO
+certbot-3.9 --nginx -d $DOMINIO
 
 echo ""
 
@@ -38,7 +37,7 @@ sleep 2
 
 echo ""
 
-certbot-3.8 enhance --hsts -d $DOMINIO
+certbot-3.9 enhance --hsts -d $DOMINIO
 
 echo ""
 
@@ -48,11 +47,9 @@ service nginx restart
 
 echo ""
 
-sed -ie 's/^\s*listen 80/listen 8080/' /usr/local/etc/nginx/nginx.conf
-
-sed -ie 's/^\s*listen 80/listen 8080/' /usr/local/etc/nginx/conf.d/$DOMINIO.conf
-
-sed -ie 's/^\s*443 ssl/443 ssl http2/' /usr/local/etc/nginx/conf.d/$DOMINIO.conf
+sed -i '' -e 's/^[[:space:]]*listen 80/listen 8080/' /usr/local/etc/nginx/nginx.conf
+sed -i '' -e 's/^[[:space:]]*listen 80/listen 8080/' /usr/local/etc/nginx/conf.d/$DOMINIO.conf
+sed -i '' -e 's/^[[:space:]]*443 ssl/443 ssl http2/' /usr/local/etc/nginx/conf.d/$DOMINIO.conf
 
 rm -rf /usr/local/etc/nginx/nginx.confe
 
