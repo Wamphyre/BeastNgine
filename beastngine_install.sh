@@ -26,21 +26,19 @@ echo "Extracting ports..."
 
 echo ""
 
-portsnap fetch auto
+git clone --depth 1 https://git.FreeBSD.org/ports.git /usr/ports
 
-echo "INSTALLING VARNISH + CERTBOT + PHP80 + MARIADB + SSHGUARD"
+echo "INSTALLING VARNISH + CERTBOT + PHP83 + MARIADB + SSHGUARD"
 
-pkg install -y php80 php80-mysqli php80-session php80-xml php80-ftp php80-curl php80-tokenizer php80-zlib php80-zip php80-filter php80-gd php80-openssl php80-pdo php80-bcmath php80-exif php80-fileinfo php80-opcache php80-pecl-redis php80-ctype php80-pecl-imagick-im7 php80-curl php80-mbstring php80-dom php80-iconv
+pkg install -y php83 php83-bcmath php83-ctype php83-curl php83-dom php83-exif php83-fileinfo php83-filter php83-ftp php83-gd php83-iconv php83-intl php83-mbstring php83-mysqli php83-opcache php83-pdo php83-pecl-redis php83-session php83-tokenizer php83-xml php83-zip php83-zlib
 
-pkg install -y mariadb105-client mariadb105-server
+pkg install -y mariadb106-client mariadb106-server
 
-pkg install -y py38-certbot-nginx
-
-pkg install -y py38-salt
+pkg install -y py39-certbot-nginx py39-certbot
 
 pkg install -y nano htop git libtool automake autoconf curl
 
-pkg install -y varnish6
+pkg install -y varnish7
 
 pkg install -y redis
 
@@ -52,7 +50,7 @@ mv /usr/local/etc/sshguard.conf /usr/local/etc/sshguard_bk
 
 cd /usr/local/etc/ && fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/sshguard.conf
 
-pkg install -y libxml2 libxslt modsecurity3 python git binutils pcre libgd openldap-client
+pkg install -y libxml2 libxslt modsecurity3 python git binutils pcre libgd
 
 echo ""
 
@@ -62,11 +60,7 @@ sleep 5
 
 cd
 
-fetch https://github.com/Wamphyre/BeastNgine/raw/master/nginx-devel-1.20.0.txz && pkg install -y nginx-devel-1.20.0.txz
-
-sleep 3
-
-rm -rf nginx-devel-1.20.0.txz
+cd /usr/ports/www/nginx-devel && make -D AJP=off -D ARRAYVAR=off -D AWS_AUTH=off -D BROTLI=on -D CACHE_PURGE=on -D CT=off -D DEBUG=off -D DEBUGLOG=off -D DEVEL_KIT=off -D DRIZZLE=off -D DSO=on -D DYNAMIC_UPSTREAM=off -D ECHO=off -D ENCRYPTSESSION=off -D FILE_AIO=on -D FIPS_CHECK=off -D FORMINPUT=off -D GOOGLE_PERFTOOLS=off -D GRIDFS=off -D GSSAPI_HEIMDAL=off -D GSSAPI_MIT=off -D HEADERS_MORE=off -D HTTP=on -D HTTPV2=on -D HTTPV3=on -D HTTPV3_BORING=off -D HTTPV3_LSSL=off -D HTTPV3_QTLS=off -D HTTP_ACCEPT_LANGUAGE=off -D HTTP_ADDITION=on -D HTTP_AUTH_DIGEST=off -D HTTP_AUTH_KRB5=off -D HTTP_AUTH_LDAP=off -D HTTP_AUTH_PAM=off -D HTTP_AUTH_REQ=on -D HTTP_CACHE=on -D HTTP_DAV=on -D HTTP_DAV_EXT=off -D HTTP_DEGRADATION=off -D HTTP_EVAL=off -D HTTP_FANCYINDEX=off -D HTTP_FLV=on -D HTTP_FOOTER=off -D HTTP_GEOIP2=on -D HTTP_GUNZIP_FILTER=on -D HTTP_GZIP_STATIC=on -D HTTP_IMAGE_FILTER=on -D HTTP_IP2LOCATION=on -D HTTP_IP2PROXY=on -D HTTP_JSON_STATUS=off -D HTTP_MOGILEFS=off -D HTTP_MP4=on -D HTTP_NOTICE=off -D HTTP_PERL=off -D HTTP_PUSH=off -D HTTP_PUSH_STREAM=off -D HTTP_RANDOM_INDEX=on -D HTTP_REALIP=on -D HTTP_REDIS=on -D HTTP_SECURE_LINK=on -D HTTP_SLICE=on -D HTTP_SLICE_AHEAD=off -D HTTP_SSL=on -D HTTP_STATUS=on -D HTTP_SUB=on -D HTTP_SUBS_FILTER=off -D HTTP_TARANTOOL=off -D HTTP_UPLOAD=off -D HTTP_UPLOAD_PROGRESS=off -D HTTP_UPSTREAM_CHECK=off -D HTTP_UPSTREAM_FAIR=off -D HTTP_UPSTREAM_STICKY=off -D HTTP_VIDEO_THUMBEXTRACTOR=off -D HTTP_XSLT=on -D HTTP_ZIP=off -D ICONV=off -D IPV6=on -D LET=off -D LINK=off -D LUA=off -D LUASTREAM=off -D MAIL=on -D MAIL_IMAP=off -D MAIL_POP3=off -D MAIL_SMTP=off -D MAIL_SSL=on -D MEMC=off -D MODSECURITY3=on -D NAXSI=off -D NJS=off -D NJS_XML=off -D OTEL=off -D PASSENGER=off -D POSTGRES=off -D RDS_CSV=off -D RDS_JSON=off -D REDIS2=on -D RTMP=off -D SET_MISC=off -D SFLOW=off -D SHIBBOLETH=off -D SLOWFS_CACHE=off -D SRCACHE=off -D STREAM=on -D STREAM_REALIP=on -D STREAM_SSL=on -D STREAM_SSL_PREREAD=on -D STS=off -D THREADS=on -D VOD=off -D VTS=off -D WEBSOCKIFY=off -D WWW=on -D XSS=off -D ZSTD=off install clean BATCH=YES
 
 cd /tmp
 
@@ -92,7 +86,7 @@ fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/ip_blacklist.
 
 cd /usr/local/etc/modsecurity && fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/unicode.mapping
  
-sed -ie 's/^\s*SecRuleEngine DetectionOnly/SecRuleEngine On/' /usr/local/etc/modsecurity/modsecurity.conf
+sed -i '' 's/^[[:space:]]*SecRuleEngine DetectionOnly/SecRuleEngine On/' /usr/local/etc/modsecurity/modsecurity.conf
 
 echo "Configuring Server Stack..."
 
@@ -108,11 +102,13 @@ sysrc varnishd_listen=":80"
 
 sysrc varnishd_backend="localhost:8080"
 
-sysrc varnishd_storage="malloc,512M"
+sysrc varnishd_storage="malloc,128M"
 
 sysrc varnishd_admin=":8081"
 
 sysrc redis_enable="YES"
+
+mkdir /var/log/php-fpm
 
 mkdir /usr/local/etc/varnish && cd /usr/local/etc/varnish && fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/wordpress.vcl
 
@@ -235,34 +231,52 @@ echo "Aplying hardening and system tuning"
 
 echo ""
 
-mv /etc/sysctl.conf /etc/sysctl.conf.bk
-echo 'vfs.usermount=1' >> /etc/sysctl.conf
-echo 'vfs.vmiodirenable=0' >> /etc/sysctl.conf
-echo 'vfs.read_max=4' >> /etc/sysctl.conf
-echo 'kern.ipc.shmmax=67108864' >> /etc/sysctl.conf
-echo 'kern.ipc.shmall=32768' >> /etc/sysctl.conf
-echo 'kern.ipc.somaxconn=256' >> /etc/sysctl.conf
-echo 'kern.ipc.shm_use_phys=1' >> /etc/sysctl.conf
-echo 'kern.ipc.somaxconn=32' >> /etc/sysctl.conf
-echo 'kern.maxvnodes=60000' >> /etc/sysctl.conf
-echo 'kern.coredump=0' >> /etc/sysctl.conf
-echo 'kern.sched.preempt_thresh=224' >> /etc/sysctl.conf
-echo 'kern.sched.slice=3' >> /etc/sysctl.conf
-echo 'hw.snd.feeder_rate_quality=3' >> /etc/sysctl.conf
-echo 'hw.snd.maxautovchans=32' >> /etc/sysctl.conf
-echo 'vfs.lorunningspace=1048576' >> /etc/sysctl.conf
-echo 'vfs.hirunningspace=5242880' >> /etc/sysctl.conf
-echo 'kern.ipc.shm_allow_removed=1' >> /etc/sysctl.conf
+# Parámetros a añadir
+params="
+# Mejorar el rendimiento del sistema de archivos
+vfs.read_max=128
+# Ajustes de caché de directorio
+vfs.cache.maxvnodes=50000
+# Habilitar uso de todos los núcleos del CPU
+kern.sched.steal_cores=1
+# Optimización de memoria
+vm.pmap.sp_enabled=1
+# Incrementar la cantidad de sockets disponibles para conexiones web
+kern.ipc.somaxconn=3048
+# Ajustes para el rendimiento de red
+net.inet.tcp.mssdflt=1460
+net.inet.tcp.minmss=536
+net.inet.tcp.cc.algorithm=cubic
+# Desactivar envío de RST al puerto cerrado
+net.inet.tcp.blackhole=2
+net.inet.udp.blackhole=1
+# Configuración adicional
+kern.coredump=0
+kern.sched.preempt_thresh=224
+vfs.usermount=1
+vfs.vmiodirenable=0
+"
 
-echo 'hw.snd.vpc_autoreset=0' >> /boot/loader.conf
-echo 'hw.syscons.bell=0' >> /boot/loader.conf
-echo 'hw.usb.no_pf=1' >> /boot/loader.conf
-echo 'hw.usb.no_boot_wait=0' >> /boot/loader.conf
-echo 'hw.usb.no_shutdown_wait=1' >> /boot/loader.conf
-echo 'hw.psm.synaptics_support=1' >> /boot/loader.conf
-echo 'kern.maxfiles="25000"' >> /boot/loader.conf
-echo 'kern.maxusers=16' >> /boot/loader.conf
-echo 'kern.cam.scsi_delay=10000' >> /boot/loader.conf
+# Añadir los parámetros al archivo sysctl.conf
+echo "$params" >> /etc/sysctl.conf
+
+# Parámetros a añadir
+params="
+# Configure USB OTG; see usb_template(4).
+hw.usb.template=3
+umodem_load=\"YES\"
+
+# Multiple console (serial+efi gop) enabled.
+boot_multicons=\"YES\"
+boot_serial=\"YES\"
+
+# Disable the beastie menu and color
+beastie_disable=\"YES\"
+loader_color=\"NO\"
+"
+
+# Añadir los parámetros al archivo loader.conf
+echo "$params" >> /boot/loader.conf
 
 sysrc pf_enable="YES"
 sysrc pf_rules="/etc/pf.conf" 
@@ -283,63 +297,6 @@ sysrc sendmail_enable="NO"
 
 sysrc dumpdev="NO"
 sysrc sshguard_enable="YES"
-
-echo 'kern.elf64.nxstack=1' >> /etc/sysctl.conf
-echo 'security.bsd.map_at_zero=0' >> /etc/sysctl.conf
-echo 'security.bsd.see_other_uids=0' >> /etc/sysctl.conf
-echo 'security.bsd.see_other_gids=0' >> /etc/sysctl.conf
-echo 'security.bsd.unprivileged_read_msgbuf=0' >> /etc/sysctl.conf
-echo 'security.bsd.unprivileged_proc_debug=0' >> /etc/sysctl.conf
-echo 'kern.randompid=9800' >> /etc/sysctl.conf
-echo 'security.bsd.stack_guard_page=1' >> /etc/sysctl.conf
-echo 'net.inet.udp.blackhole=1' >> /etc/sysctl.conf
-echo 'net.inet.tcp.blackhole=2' >> /etc/sysctl.conf
-echo 'net.inet.ip.random_id=1' >> /etc/sysctl.conf
-
-echo ""
-
-echo "Optimizing FreeBSD network stack settings"
-
-echo ""
-
-echo 'kern.ipc.soacceptqueue=1024' >> /etc/sysctl.conf
-echo 'kern.ipc.maxsockbuf=8388608' >> /etc/sysctl.conf
-echo 'net.inet.tcp.sendspace=262144' >> /etc/sysctl.conf
-echo 'net.inet.tcp.recvspace=262144' >> /etc/sysctl.conf
-echo 'net.inet.tcp.sendbuf_max=16777216' >> /etc/sysctl.conf
-echo 'net.inet.tcp.recvbuf_max=16777216' >> /etc/sysctl.conf
-echo 'net.inet.tcp.sendbuf_inc=32768' >> /etc/sysctl.conf
-echo 'net.inet.tcp.recvbuf_inc=65536' >> /etc/sysctl.conf
-echo 'net.inet.raw.maxdgram=16384' >> /etc/sysctl.conf
-echo 'net.inet.raw.recvspace=16384' >> /etc/sysctl.conf
-echo 'net.inet.tcp.abc_l_var=44' >> /etc/sysctl.conf
-echo 'net.inet.tcp.initcwnd_segments=44' >> /etc/sysctl.conf
-echo 'net.inet.tcp.mssdflt=1448' >> /etc/sysctl.conf
-echo 'net.inet.tcp.minmss=524' >> /etc/sysctl.conf
-echo 'net.inet.tcp.cc.algorithm=htcp' >> /etc/sysctl.conf
-echo 'net.inet.tcp.cc.htcp.adaptive_backoff=1' >> /etc/sysctl.conf
-echo 'net.inet.tcp.cc.htcp.rtt_scaling=1' >> /etc/sysctl.conf
-echo 'net.inet.tcp.rfc6675_pipe=1' >> /etc/sysctl.conf
-echo 'net.inet.tcp.syncookies=0' >> /etc/sysctl.conf
-echo 'net.inet.tcp.nolocaltimewait=1' >> /etc/sysctl.conf
-echo 'net.inet.tcp.tso=0' >> /etc/sysctl.conf
-echo 'net.inet.ip.intr_queue_maxlen=2048' >> /etc/sysctl.conf
-echo 'net.route.netisr_maxqlen=2048' >> /etc/sysctl.conf
-echo 'dev.igb.0.fc=0' >> /etc/sysctl.conf
-echo 'dev.igb.1.fc=0' >> /etc/sysctl.conf
-echo 'aio_load="yes"' >> /boot/loader.conf
-echo 'cc_htcp_load="YES"' >> /boot/loader.conf
-echo 'accf_http_load="YES"' >> /boot/loader.conf
-echo 'accf_data_load="YES"' >> /boot/loader.conf
-echo 'accf_dns_load="YES"' >> /boot/loader.conf
-echo 'net.inet.tcp.hostcache.cachelimit="0"' >> /boot/loader.conf
-echo 'net.link.ifqmaxlen="2048"' >> /boot/loader.conf
-echo 'net.inet.tcp.soreceive_stream="1"' >> /boot/loader.conf
-echo 'hw.igb.rx_process_limit="-1"' >> /boot/loader.conf
-echo 'ahci_load="YES"' >> /boot/loader.conf
-echo 'coretemp_load="YES"' >> /boot/loader.conf
-echo 'tmpfs_load="YES"' >> /boot/loader.conf
-echo 'if_igb_load="YES"' >> /boot/loader.conf
 
 echo ""
 
