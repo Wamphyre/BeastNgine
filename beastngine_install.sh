@@ -278,6 +278,35 @@ loader_color=\"NO\"
 # Añadir los parámetros al archivo loader.conf
 echo "$params" >> /boot/loader.conf
 
+params="
+[mysqld]
+# Parámetros de configuración iniciales
+key_buffer_size         = 8M
+max_allowed_packet      = 16M
+thread_stack            = 192K
+thread_cache_size       = 8
+query_cache_limit       = 512K
+query_cache_size        = 8M
+
+# Cambiar el motor de almacenamiento predeterminado a InnoDB
+default-storage-engine  = innodb
+
+# Configuraciones de InnoDB
+innodb_buffer_pool_size = 128M  # Reducido para ajustarse a 1 GB de RAM
+innodb_log_file_size    = 32M   # Ajustado para uso moderado de RAM
+innodb_flush_log_at_trx_commit = 1
+innodb_file_per_table   = 1
+
+# Tamaño máximo permitido del paquete
+max_allowed_packet      = 16M
+
+# Número máximo de conexiones
+max_connections         = 50    # Reducido para ajustarse a 1 GB de RAM
+"
+
+# Añadir los parámetros al archivo my.cnf
+echo "$params" >> /usr/local/etc/mysql/my.cnf
+
 sysrc pf_enable="YES"
 sysrc pf_rules="/etc/pf.conf" 
 sysrc pf_flags=""
