@@ -1,8 +1,6 @@
 # BeastNgine
 
-![Image of BeastNgine logo](https://beastngine.com/wp-content/uploads/2020/05/facebook_profile_image-300x300.png)
-
-Engintron inspired implementation of Varnish, Nginx, Brotli, php-fpm, certbot and modsecurity **for FreeBSD**
+Engintron inspired implementation of Varnish, Nginx, Brotli, php-fpm, Redis and modsecurity **for FreeBSD**
 
 This only installs a very customized, secure and optimized web server stack, especially oriented to Wordpress installations
 
@@ -40,28 +38,4 @@ Don't forget to install htop, git, nano, curl and wget: `pkg install curl wget h
 
 3 - Launch `add_domain.sh` script to create a VHOST for a domain, this will create his own directory on `/usr/local/www/public_html` and his own pre-configured VHOST on `/usr/local/etc/nginx/conf.d`
 
-4 - If the domain have DNS set up, launch `autossl.sh` script to install an SSL certificate 
-
-5 - Start working on your website
-
-6 - If you need to create databases, you can access phpmyadmin using domain.com/phpmyadmin
-
-7 - If you're under attack, just launch `attack_mode_on.sh` script to block ALL TRAFFIC, launch `attack_mode_off.sh` to deactivate
-
 **WARNING** FIRST, check the script and change the ssh default port to yours
-
-8 - You can block IPs too with the `ip_blocker.sh` script
-
-9 - You can update your system launching `updater.sh` script
-
-10 - You can clean your pkg and ports tmp files using `port_cleaner.sh` script
-
-11 - You can repair permissions on the public directory (/usr/local/www/public_html) with the `repair_permissions.sh` script
-
-12 - You can optimize images of your website with the `image_optimizer.sh` script, with: `bash image_optimizer.sh -p /yoursite/path`
-
-13 - You can install wordpress inside a directory on public_html with the `autowordpress.sh` script
-
-14 - You can make backups of your Wordpress (with sql database included), with the `backup_creator.sh` script
-
-**SUPPORT THE PROJECT ON HTTPS://BEASTNGINE.COM**
