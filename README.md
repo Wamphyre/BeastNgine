@@ -1,6 +1,6 @@
 # BeastNgine
 
-Engintron inspired implementation of Varnish, Nginx, Brotli, php-fpm, Redis and modsecurity **for FreeBSD**
+Engintron inspired implementation of Varnish, Nginx, PHP83, PHP-FPM and Valkey **for FreeBSD**
 
 This only installs a very customized, secure and optimized web server stack, especially oriented to Wordpress installations
 
