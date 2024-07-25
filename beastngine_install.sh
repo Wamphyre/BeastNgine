@@ -28,7 +28,7 @@ echo ""
 
 git clone --depth 1 https://git.FreeBSD.org/ports.git /usr/ports
 
-echo "INSTALLING VARNISH + CERTBOT + PHP83 + MARIADB + SSHGUARD"
+echo "INSTALLING PHP83 / VARNISH / VALKEY / MARIADB / CERTBOT / SSHGUARD"
 
 pkg install -y php83 php83-bcmath php83-ctype php83-curl php83-dom php83-exif php83-fileinfo php83-filter php83-ftp php83-gd php83-iconv php83-intl php83-mbstring php83-mysqli php83-opcache php83-pdo php83-pecl-redis php83-session php83-tokenizer php83-xml php83-zip php83-zlib
 
@@ -40,11 +40,9 @@ pkg install -y nano htop git libtool automake autoconf curl
 
 pkg install -y varnish7
 
-pkg install -y redis
+pkg install -y valkey
 
-cd /usr/ports/security/sshguard
-
-make install clean BATCH=yes
+cd /usr/ports/security/sshguard && make install clean BATCH=yes
 
 mv /usr/local/etc/sshguard.conf /usr/local/etc/sshguard_bk
 
@@ -54,25 +52,19 @@ pkg install -y libxml2 libxslt modsecurity3 python git binutils pcre libgd
 
 echo ""
 
-echo "INSTALLING NGINX WITH MODSECURITY3 AND BROTLI MODULES"
+echo "COMPILING NGINX WITH MODSECURITY3 AND BROTLI MODULES"
 
-sleep 5
+sleep 3
 
 cd
 
 cd /usr/ports/www/nginx-devel && make -D AJP=off -D ARRAYVAR=off -D AWS_AUTH=off -D BROTLI=on -D CACHE_PURGE=on -D CT=off -D DEBUG=off -D DEBUGLOG=off -D DEVEL_KIT=off -D DRIZZLE=off -D DSO=on -D DYNAMIC_UPSTREAM=off -D ECHO=off -D ENCRYPTSESSION=off -D FILE_AIO=on -D FIPS_CHECK=off -D FORMINPUT=off -D GOOGLE_PERFTOOLS=off -D GRIDFS=off -D GSSAPI_HEIMDAL=off -D GSSAPI_MIT=off -D HEADERS_MORE=off -D HTTP=on -D HTTPV2=on -D HTTPV3=on -D HTTPV3_BORING=off -D HTTPV3_LSSL=off -D HTTPV3_QTLS=off -D HTTP_ACCEPT_LANGUAGE=off -D HTTP_ADDITION=on -D HTTP_AUTH_DIGEST=off -D HTTP_AUTH_KRB5=off -D HTTP_AUTH_LDAP=off -D HTTP_AUTH_PAM=off -D HTTP_AUTH_REQ=on -D HTTP_CACHE=on -D HTTP_DAV=on -D HTTP_DAV_EXT=off -D HTTP_DEGRADATION=off -D HTTP_EVAL=off -D HTTP_FANCYINDEX=off -D HTTP_FLV=on -D HTTP_FOOTER=off -D HTTP_GEOIP2=on -D HTTP_GUNZIP_FILTER=on -D HTTP_GZIP_STATIC=on -D HTTP_IMAGE_FILTER=on -D HTTP_IP2LOCATION=on -D HTTP_IP2PROXY=on -D HTTP_JSON_STATUS=off -D HTTP_MOGILEFS=off -D HTTP_MP4=on -D HTTP_NOTICE=off -D HTTP_PERL=off -D HTTP_PUSH=off -D HTTP_PUSH_STREAM=off -D HTTP_RANDOM_INDEX=on -D HTTP_REALIP=on -D HTTP_REDIS=on -D HTTP_SECURE_LINK=on -D HTTP_SLICE=on -D HTTP_SLICE_AHEAD=off -D HTTP_SSL=on -D HTTP_STATUS=on -D HTTP_SUB=on -D HTTP_SUBS_FILTER=off -D HTTP_TARANTOOL=off -D HTTP_UPLOAD=off -D HTTP_UPLOAD_PROGRESS=off -D HTTP_UPSTREAM_CHECK=off -D HTTP_UPSTREAM_FAIR=off -D HTTP_UPSTREAM_STICKY=off -D HTTP_VIDEO_THUMBEXTRACTOR=off -D HTTP_XSLT=on -D HTTP_ZIP=off -D ICONV=off -D IPV6=on -D LET=off -D LINK=off -D LUA=off -D LUASTREAM=off -D MAIL=on -D MAIL_IMAP=off -D MAIL_POP3=off -D MAIL_SMTP=off -D MAIL_SSL=on -D MEMC=off -D MODSECURITY3=on -D NAXSI=off -D NJS=off -D NJS_XML=off -D OTEL=off -D PASSENGER=off -D POSTGRES=off -D RDS_CSV=off -D RDS_JSON=off -D REDIS2=on -D RTMP=off -D SET_MISC=off -D SFLOW=off -D SHIBBOLETH=off -D SLOWFS_CACHE=off -D SRCACHE=off -D STREAM=on -D STREAM_REALIP=on -D STREAM_SSL=on -D STREAM_SSL_PREREAD=on -D STS=off -D THREADS=on -D VOD=off -D VTS=off -D WEBSOCKIFY=off -D WWW=on -D XSS=off -D ZSTD=off install clean BATCH=YES
 
-cd /tmp
+cd /tmp && git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
 
-git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
+cd owasp-modsecurity-crs/ && cp crs-setup.conf.example /usr/local/etc/modsecurity/crs-setup.conf
 
-cd owasp-modsecurity-crs/
-
-cp crs-setup.conf.example /usr/local/etc/modsecurity/crs-setup.conf
-
-mkdir /usr/local/etc/modsecurity/crs
-
-cp rules/* /usr/local/etc/modsecurity/crs
+mkdir /usr/local/etc/modsecurity/crs && cp rules/* /usr/local/etc/modsecurity/crs
 
 echo 'Include "/usr/local/etc/modsecurity/crs/*.conf"' >> /usr/local/etc/modsecurity/modsecurity.conf
 
@@ -106,7 +98,7 @@ sysrc varnishd_storage="malloc,128M"
 
 sysrc varnishd_admin=":8081"
 
-sysrc redis_enable="YES"
+sysrc valkey_enable="YES"
 
 mkdir /var/log/php-fpm
 
@@ -203,7 +195,7 @@ service nginx start
 
 service varnishd start
 
-service redis start
+service valkey start
 
 mv /usr/local/etc/php.ini-production /usr/local/etc/php.ini-production_bk
 
@@ -323,7 +315,6 @@ sysrc sendmail_submit_enable="NO"
 sysrc sendmail_msp_queue_enable="NO"
 sysrc sendmail_outbound_enable="NO"
 sysrc sendmail_enable="NO"
-
 sysrc dumpdev="NO"
 sysrc sshguard_enable="YES"
 
