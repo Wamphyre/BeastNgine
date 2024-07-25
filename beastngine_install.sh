@@ -31,15 +31,10 @@ git clone --depth 1 https://git.FreeBSD.org/ports.git /usr/ports
 echo "INSTALLING PHP83 / VARNISH / VALKEY / MARIADB / CERTBOT / SSHGUARD"
 
 pkg install -y php83 php83-bcmath php83-ctype php83-curl php83-dom php83-exif php83-fileinfo php83-filter php83-ftp php83-gd php83-iconv php83-intl php83-mbstring php83-mysqli php83-opcache php83-pdo php83-pecl-redis php83-session php83-tokenizer php83-xml php83-zip php83-zlib
-
 pkg install -y mariadb106-client mariadb106-server
-
 pkg install -y py39-certbot-nginx py39-certbot
-
 pkg install -y nano htop git libtool automake autoconf curl
-
 pkg install -y varnish7
-
 pkg install -y valkey
 
 cd /usr/ports/security/sshguard && make install clean BATCH=yes
@@ -83,21 +78,13 @@ sed -i '' 's/^[[:space:]]*SecRuleEngine DetectionOnly/SecRuleEngine On/' /usr/lo
 echo "Configuring Server Stack..."
 
 sysrc nginx_enable="YES"
-
 sysrc php_fpm_enable="YES"
-
 sysrc varnishd_enable=YES
-
 sysrc varnishd_config="/usr/local/etc/varnish/wordpress.vcl"
-
 sysrc varnishd_listen=":80"
-
 sysrc varnishd_backend="localhost:8080"
-
 sysrc varnishd_storage="malloc,128M"
-
 sysrc varnishd_admin=":8081"
-
 sysrc valkey_enable="YES"
 
 mkdir /var/log/php-fpm
@@ -210,7 +197,6 @@ chown -R www:www /usr/local/www/public_html/
 echo ""
 
 sysrc mysql_enable="YES"
-
 sysrc mysql_args="--bind-address=127.0.0.1"
 
 service mysql-server start
