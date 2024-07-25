@@ -99,6 +99,8 @@ mv /usr/local/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf_bk
 
 cd /usr/local/etc/php-fpm.d/ && fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/www.conf
 
+cd /usr/local/etc/ && fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/valkey.conf
+
 cd /usr/local/etc/nginx/ && fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/nginx.conf
 
 cd /usr/local/etc/nginx/ && fetch https://raw.githubusercontent.com/Wamphyre/BeastNgine/master/mime.types
