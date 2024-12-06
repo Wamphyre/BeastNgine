@@ -79,8 +79,8 @@ echo "Configuring Server Stack..."
 
 sysrc nginx_enable="YES"
 sysrc php_fpm_enable="YES"
-sysrc varnishd_enable=YES
-sysrc varnishd_config="/usr/local/etc/varnish/wordpress.vcl"
+sysrc varnishd_enable="YES"
+#sysrc varnishd_config="/usr/local/etc/varnish/wordpress.vcl"
 sysrc varnishd_listen=":80"
 sysrc varnishd_backend="localhost:8080"
 sysrc varnishd_storage="malloc,128M"
