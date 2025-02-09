@@ -29,7 +29,7 @@ server {
     # Brotli settings
     brotli on;
     brotli_comp_level 4;   
-    brotli_types text/plain text/css application/json application/javascript application/xml;
+    brotli_types text/plain text/css application/json application/javascript application/xml application/x-font-ttf application/vnd.ms-fontobject image/svg+xml image/x-icon image/webp;
 
     # Proxy buffers
     proxy_buffer_size 64k;
@@ -56,10 +56,12 @@ server {
     }
 
     # Static resources
-    location ~* \.(xml|ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|css|rss|atom|js|jpg|jpeg|gif|png|ico|zip|tgz|gz|rar|bz2|doc|xls|exe|ppt|tar|mid|midi|wav|bmp|rtf)\$ {
+    location ~* \.(xml|ogg|ogv|svg|svgz|eot|otf|woff|woff2|ttf|css|rss|atom|js|jpg|jpeg|gif|png|ico|zip|tgz|gz|rar|bz2|doc|xls|exe|ppt|tar|mid|midi|wav|bmp|rtf|webp|avif|heic)\$ {
         expires max;
         log_not_found off;
         access_log off;
+        add_header Cache-Control "public, no-transform";
+        try_files \$uri \$uri/ /index.php\$is_args\$args;
     }
 
     # Security headers
@@ -67,6 +69,7 @@ server {
     add_header X-XSS-Protection "1; mode=block" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Permissions-Policy "interest-cohort=()";
     
     # Logs
     access_log /var/log/nginx/$DOMINIO-access.log;
@@ -82,18 +85,39 @@ server {
     }
 	
     # Deny access to sensitive files
-    location ~* /(wp-config\.php|xmlrpc\.php) {
+    location ~* /(wp-config\.php|xmlrpc\.php|readme\.html|license\.txt) {
+        deny all;
+    }
+
+    # PHP-FPM Status and Ping
+    location = /status {
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_pass 127.0.0.1:9000;
+        allow 127.0.0.1;
+        deny all;
+    }
+
+    location = /ping {
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_pass 127.0.0.1:9000;
+        allow 127.0.0.1;
         deny all;
     }
 
     location = /favicon.ico {
         access_log off;
         log_not_found off;
+        expires max;
     }
 
     location = /robots.txt {
         access_log off;
         log_not_found off;
+        try_files \$uri \$uri/ /index.php\$is_args\$args;
     }
 
     # Block access to hidden files
@@ -103,20 +127,50 @@ server {
         deny all;
     }
 
+    # WordPress Specific
+    location ~ ^/wp-content/uploads/.*\.php$ {
+        deny all;
+    }
+
+    location ~* /(?:uploads|files|wp-content|wp-includes|akismet)/.*.php$ {
+        deny all;
+    }
+
     location ~ [^/]\.php(/|$) {
+        fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+        if (!-f \$document_root\$fastcgi_script_name) {
+            return 404;
+        }
+        
         fastcgi_pass 127.0.0.1:9000;
-        fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_intercept_errors on;
+        fastcgi_index index.php;
+        
+        # Timeouts
+        fastcgi_read_timeout 60s;
+        fastcgi_send_timeout 60s;
+        fastcgi_connect_timeout 60s;
+        
+        # Buffers
         fastcgi_buffer_size 64k;
         fastcgi_buffers 4 64k;
         fastcgi_busy_buffers_size 64k;
+        
+        # Cache settings
         fastcgi_cache_bypass \$skip_cache;
         fastcgi_no_cache \$skip_cache;
         fastcgi_cache WORDPRESS;
         fastcgi_cache_valid 60m;
-        fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        
+        # Hide cache header from end users
+        fastcgi_hide_header Cache-Control;
+        
         include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    }
+
+    # Return 404 for all other php files not matching the front controller
+    location ~ \.php$ {
+        return 404;
     }
 }
 EOF
