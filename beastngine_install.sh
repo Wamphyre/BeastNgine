@@ -554,7 +554,51 @@ chown -R www:www /usr/local/www/public_html
 # 7. Start Services & DB Init
 # ==========================================
 log_info "Starting Services..."
+
+# Try to start Nginx first
 service nginx start
+sleep 2
+
+# Check if nginx is running
+if ! service nginx status >/dev/null 2>&1; then
+    log_warn "Nginx failed to start. Attempting clean rebuild without ModSecurity..."
+    
+    # Stop any running nginx processes
+    pkill nginx 2>/dev/null || true
+    
+    # Clean up nginx and modsecurity
+    log_info "Removing nginx-devel and modsecurity3..."
+    pkg delete -y nginx-devel modsecurity3 2>/dev/null || true
+    
+    # Clean ports
+    cd /usr/ports/www/nginx-devel && make clean 2>/dev/null || true
+    
+    # Rebuild nginx WITHOUT ModSecurity
+    log_info "Recompiling Nginx without ModSecurity..."
+    NGINX_OPTIONS_CLEAN="-D MODSECURITY3=off -D BROTLI=on -D HTTP=on -D HTTPV2=on -D HTTPV3=on -D HTTP_SSL=on -D STREAM=on"
+    
+    cd /usr/ports/www/nginx-devel
+    make $NGINX_OPTIONS_CLEAN install clean BATCH=YES
+    
+    # Disable ModSecurity in config
+    log_info "Disabling ModSecurity in nginx.conf..."
+    sed -i '' 's/^load_module.*modsecurity_module.so;/# &/' /usr/local/etc/nginx/nginx.conf
+    sed -i '' 's/^[[:space:]]*modsecurity /# &/' /usr/local/etc/nginx/nginx.conf
+    
+    # Try starting again
+    log_info "Attempting to start Nginx again..."
+    service nginx start
+    sleep 2
+    
+    if ! service nginx status >/dev/null 2>&1; then
+        log_error "Nginx still failed to start. Check logs: tail -f /var/log/nginx/error.log"
+    else
+        log_info "Nginx started successfully without ModSecurity"
+    fi
+else
+    log_info "Nginx started successfully"
+fi
+
 service varnishd start
 service valkey start
 service microcode_update start
