@@ -6,8 +6,8 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m'
 
-log_info() { echo "${GREEN}[INFO] $1${NC}"; }
-log_error() { echo "${RED}[ERROR] $1${NC}"; exit 1; }
+log_info() { printf "${GREEN}[INFO] %s${NC}\n" "$1"; }
+log_error() { printf "${RED}[ERROR] %s${NC}\n" "$1"; exit 1; }
 
 # Root check
 if [ "$(id -u)" -ne 0 ]; then

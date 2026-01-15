@@ -14,16 +14,22 @@ NC='\033[0m'
 
 # Helper Functions
 log_info() {
-    echo "${GREEN}[INFO] $1${NC}"
+    printf "${GREEN}[INFO] %s${NC}\n" "$1"
 }
 
 log_warn() {
-    echo "${YELLOW}[WARN] $1${NC}"
+    printf "${YELLOW}[WARN] %s${NC}\n" "$1"
 }
 
 log_error() {
-    echo "${RED}[ERROR] $1${NC}"
+    printf "${RED}[ERROR] %s${NC}\n" "$1"
     exit 1
+}
+
+get_latest_version() {
+    pattern="$1"
+    # Search for regex, strip version, sort version number numerically, take last
+    pkg search -x "$pattern" | cut -d ' ' -f 1 | grep -v 'php[0-9]*-' | sort -V | tail -n1
 }
 
 # Check if running as root
@@ -47,7 +53,7 @@ pkg install -y git
 log_info "Detecting latest software versions..."
 
 # PHP Detection (looks for highest php[0-9][0-9])
-PHP_PKG=$(pkg search -x '^php[0-9]{2}$' | cut -d ' ' -f 1 | grep -v 'php[0-9]*-' | sort -V | tail -n1)
+PHP_PKG=$(get_latest_version '^php[0-9]{2}$')
 if [ -z "$PHP_PKG" ]; then
     log_warn "Could not auto-detect PHP version. Defaulting to php83."
     PHP_PKG="php83"
@@ -56,8 +62,7 @@ PHP_VER=${PHP_PKG#php} # extracts '83' from 'php83'
 log_info "Selected PHP Version: $PHP_PKG"
 
 # MariaDB Detection (looks for mariadb[0-9]*-server)
-# MariaDB Detection (looks for mariadb[0-9]*-server)
-MARIADB_SERVER_PKG=$(pkg search -x '^mariadb[0-9]+-server$' | cut -d ' ' -f 1 | sort -V | tail -n1)
+MARIADB_SERVER_PKG=$(get_latest_version '^mariadb[0-9]+-server$')
 if [ -z "$MARIADB_SERVER_PKG" ]; then
     log_warn "Could not auto-detect MariaDB version. Defaulting to mariadb1011-server."
     MARIADB_SERVER_PKG="mariadb1011-server"
@@ -69,8 +74,7 @@ fi
 log_info "Selected MariaDB: $MARIADB_SERVER_PKG"
 
 # Varnish Detection
-# Varnish Detection
-VARNISH_PKG=$(pkg search -x '^varnish[0-9]+$' | cut -d ' ' -f 1 | sort -V | tail -n1)
+VARNISH_PKG=$(get_latest_version '^varnish[0-9]+$')
 if [ -z "$VARNISH_PKG" ]; then
     log_warn "Could not auto-detect Varnish version. Defaulting to varnish7."
     VARNISH_PKG="varnish7"
@@ -78,9 +82,8 @@ fi
 log_info "Selected Varnish: $VARNISH_PKG"
 
 # Certbot Detection
-# Certbot Detection
-CERTBOT_PKG=$(pkg search -x '^py[0-9]+-certbot$' | cut -d ' ' -f 1 | sort -V | tail -n1)
-CERTBOT_NGINX_PKG=$(pkg search -x '^py[0-9]+-certbot-nginx$' | cut -d ' ' -f 1 | sort -V | tail -n1)
+CERTBOT_PKG=$(get_latest_version '^py[0-9]+-certbot$')
+CERTBOT_NGINX_PKG=$(get_latest_version '^py[0-9]+-certbot-nginx$')
 if [ -z "$CERTBOT_PKG" ]; then
     CERTBOT_PKG="py39-certbot"
     CERTBOT_NGINX_PKG="py39-certbot-nginx"
