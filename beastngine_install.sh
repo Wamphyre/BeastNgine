@@ -181,7 +181,8 @@ log_info "Selected Varnish: $VARNISH_PKG"
 # Try common Python versions for certbot
 log_info "Detecting Certbot..."
 for pyver in 311 312 39; do
-    if pkg search -q -x "^py${pyver}-certbot$" >/dev/null 2>&1; then
+    # Use rquery to find packages, then strip version suffix
+    if pkg rquery -a '%n' | grep -q "^py${pyver}-certbot-nginx$" 2>/dev/null; then
         CERTBOT_PKG="py${pyver}-certbot"
         CERTBOT_NGINX_PKG="py${pyver}-certbot-nginx"
         log_info "Found Certbot: $CERTBOT_PKG"
@@ -327,7 +328,7 @@ pkg install -y nano htop libtool automake autoconf curl
 pkg install -y libxml2 libxslt modsecurity3 python binutils pcre libgd
 
 # SSHGuard - check if already installed
-if pkg info sshguard >/dev/null 2>&1; then
+if pkg info -e sshguard 2>/dev/null; then
     log_warn "SSHGuard is already installed. Skipping compilation."
 else
     log_info "Installing SSHGuard from ports..."
@@ -347,9 +348,9 @@ fi
 # 3. Nginx Compilation (Custom)
 # ==========================================
 # Check if Nginx is already installed
-if pkg info nginx >/dev/null 2>&1; then
+if pkg info -e nginx-devel 2>/dev/null || pkg info -e nginx 2>/dev/null; then
     log_warn "Nginx is already installed. Skipping compilation."
-    log_warn "To recompile, run: pkg delete nginx && rerun this script"
+    log_warn "To recompile, run: pkg delete nginx nginx-devel && rerun this script"
 else
     log_info "Compiling Nginx with ModSecurity3 and Brotli..."
 
