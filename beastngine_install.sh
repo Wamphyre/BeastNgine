@@ -555,13 +555,10 @@ chown -R www:www /usr/local/www/public_html
 # ==========================================
 log_info "Starting Services..."
 
-# Try to start Nginx first
-service nginx start
-sleep 2
-
-# Check if nginx is running
-if ! service nginx status >/dev/null 2>&1; then
-    log_warn "Nginx failed to start. Attempting clean rebuild without ModSecurity..."
+# Test Nginx configuration first
+log_info "Testing Nginx configuration..."
+if ! /usr/local/sbin/nginx -t 2>&1 | grep -q "successful"; then
+    log_warn "Nginx configuration test failed. Attempting clean rebuild without ModSecurity..."
     
     # Stop any running nginx processes
     pkill nginx 2>/dev/null || true
@@ -585,16 +582,19 @@ if ! service nginx status >/dev/null 2>&1; then
     sed -i '' 's/^load_module.*modsecurity_module.so;/# &/' /usr/local/etc/nginx/nginx.conf
     sed -i '' 's/^[[:space:]]*modsecurity /# &/' /usr/local/etc/nginx/nginx.conf
     
-    # Try starting again
-    log_info "Attempting to start Nginx again..."
-    service nginx start
-    sleep 2
-    
-    if ! service nginx status >/dev/null 2>&1; then
-        log_error "Nginx still failed to start. Check logs: tail -f /var/log/nginx/error.log"
-    else
-        log_info "Nginx started successfully without ModSecurity"
+    # Test again
+    if ! /usr/local/sbin/nginx -t 2>&1 | grep -q "successful"; then
+        log_error "Nginx configuration still invalid. Check: /usr/local/sbin/nginx -t"
     fi
+fi
+
+# Try to start Nginx
+service nginx start
+sleep 3
+
+# Verify nginx is actually running by checking for process
+if ! pgrep -q nginx; then
+    log_error "Nginx failed to start. Check logs: tail -f /var/log/nginx/error.log"
 else
     log_info "Nginx started successfully"
 fi
