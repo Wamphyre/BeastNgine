@@ -21,15 +21,15 @@ fi
 
 # Helper Functions
 log_info() {
-    printf "${GREEN}[INFO] %s${NC}\n" "$1"
+    printf "${GREEN}[INFO] %s${NC}\n" "$1" >&2
 }
 
 log_warn() {
-    printf "${YELLOW}[WARN] %s${NC}\n" "$1"
+    printf "${YELLOW}[WARN] %s${NC}\n" "$1" >&2
 }
 
 log_error() {
-    printf "${RED}[ERROR] %s${NC}\n" "$1"
+    printf "${RED}[ERROR] %s${NC}\n" "$1" >&2
     exit 1
 }
 
