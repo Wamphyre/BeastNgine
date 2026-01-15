@@ -1,47 +1,54 @@
-#!/bin/bash
+#!/bin/sh
+set -e
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+log_info() { echo "${GREEN}[INFO] $1${NC}"; }
+log_error() { echo "${RED}[ERROR] $1${NC}"; exit 1; }
+
+# Root check
+if [ "$(id -u)" -ne 0 ]; then
+   log_error "This script must be run as root"
+fi
 
 clear
+log_info "BeastNgine - Create New VHOST (WP Rocket Optimized)"
 
-echo "We will create a new VHOST optimized for WP Rocket"
-echo ""
-sleep 1
+read -p "Please, enter the domain name (e.g., example.com): " DOMINIO
 
-echo ; read -p "Please, give me a domain: " DOMINIO
+if [ -z "$DOMINIO" ]; then
+    log_error "Domain name cannot be empty."
+fi
 
-cd /usr/local/etc/nginx/conf.d && touch $DOMINIO.conf
+CONF_PATH="/usr/local/etc/nginx/conf.d/$DOMINIO.conf"
+WEB_ROOT="/usr/local/www/public_html/$DOMINIO"
 
-mkdir -p /usr/local/www/public_html/$DOMINIO
+if [ -f "$CONF_PATH" ]; then
+    log_error "Configuration for $DOMINIO already exists at $CONF_PATH"
+fi
 
-chown -R www:www /usr/local/www/public_html/$DOMINIO
+log_info "Creating directory structure..."
+mkdir -p "$WEB_ROOT"
+chown -R www:www "$WEB_ROOT"
 
-echo ""
-
-cat << EOF > $DOMINIO.conf
+log_info "Creating Nginx configuration..."
+cat << EOF > "$CONF_PATH"
 server {
     listen 8080;
     listen [::]:8080;
 
     server_name $DOMINIO www.$DOMINIO;
 
-    root /usr/local/www/public_html/$DOMINIO;
+    root $WEB_ROOT;
     index index.php index.html;
 
     # Brotli settings
     brotli on;
     brotli_comp_level 4;   
-    brotli_types 
-        text/plain 
-        text/css 
-        application/json 
-        application/javascript 
-        application/xml 
-        application/x-font-ttf 
-        application/vnd.ms-fontobject 
-        image/svg+xml 
-        image/x-icon 
-        image/webp 
-        text/xml 
-        application/x-web-app-manifest+json;
+    brotli_types text/plain text/css application/json application/javascript application/xml application/x-font-ttf application/vnd.ms-fontobject image/svg+xml image/x-icon image/webp;
 
     # Proxy buffers
     proxy_buffer_size 64k;
@@ -56,9 +63,7 @@ server {
     set \$cache_uri \$request_uri;
 
     # Bypass cache for query strings
-    if (\$query_string != "") {
-        set \$cache_uri 'null cache';
-    }
+    if (\$query_string != "") { set \$cache_uri 'null cache'; }
 
     # Don't cache URIs containing the following segments
     if (\$request_uri ~* "(/wp-admin/|/xmlrpc.php|/wp-(app|cron|login|register|mail).php|wp-.*.php|/feed/|index.php|wp-comments-popup.php|wp-links-opml.php|wp-locations.php|sitemap(_index)?.xml|[a-z0-9_-]+-sitemap([0-9]+)?.xml|(.*)preview(.*)|\?(.+)|/checkout/|/cart/|/my-account/|/wc-api/|/wp-json/|/webp-express/|addons|removed_item|undo_item|applied_coupon|removed_coupon|update_shipping_method|update_order_review)") {
@@ -102,46 +107,18 @@ server {
     access_log /var/log/nginx/$DOMINIO-access.log;
     error_log /var/log/nginx/$DOMINIO-error.log;
             
-    # Bad bots and referrer spam blocking
-    if (\$http_user_agent ~* (bot|crawler|spider|slurp|Baiduspider|80legs|360Spider|Sosospider|Sogou)) {
-        return 403;
-    }
+    # Bad bots
+    if (\$http_user_agent ~* (bot|crawler|spider|slurp|Baiduspider|80legs|360Spider|Sosospider|Sogou)) { return 403; }
 
     # WordPress Security
-    # Block PHP files in uploads, template, cache and includes directory
-    location ~* /(?:uploads|files|wp-content|wp-includes|akismet|wp-content/cache|wp-content/themes)/*.*.php\$ {
-        deny all;
-        access_log off;
-        log_not_found off;
-    }
+    location ~* /(?:uploads|files|wp-content|wp-includes|akismet|wp-content/cache|wp-content/themes)/*.*.php\$ { deny all; access_log off; log_not_found off; }
+    location ~* /(wp-config\.php|xmlrpc\.php|readme\.html|license\.txt|wp-cli\.yml|wp-config-sample\.php) { deny all; access_log off; log_not_found off; }
 
-    # Deny access to sensitive files
-    location ~* /(wp-config\.php|xmlrpc\.php|readme\.html|license\.txt|wp-cli\.yml|wp-config-sample\.php) {
-        deny all;
-        access_log off;
-        log_not_found off;
-    }
+    location = /favicon.ico { access_log off; log_not_found off; expires max; }
+    location = /robots.txt { try_files \$uri \$uri/ /index.php\$is_args\$args; access_log off; log_not_found off; }
+    location ~ /\. { access_log off; log_not_found off; deny all; }
 
-    location = /favicon.ico {
-        access_log off;
-        log_not_found off;
-        expires max;
-    }
-
-    location = /robots.txt {
-        try_files \$uri \$uri/ /index.php\$is_args\$args;
-        access_log off;
-        log_not_found off;
-    }
-
-    # Block access to hidden files
-    location ~ /\. {
-        access_log off;
-        log_not_found off;
-        deny all;
-    }
-
-    # PHP handling with improved FastCGI settings
+    # PHP handling
     location ~ [^/]\.php(/|\$) {
         try_files \$uri \$uri/ /index.php\$is_args\$args;
         fastcgi_split_path_info ^(.+?\.php)(/.*)\$;
@@ -149,7 +126,6 @@ server {
         fastcgi_pass 127.0.0.1:9000;
         fastcgi_index index.php;
         
-        # FastCGI handling
         fastcgi_buffers 16 16k;
         fastcgi_buffer_size 32k;
         fastcgi_read_timeout 600s;
@@ -164,7 +140,6 @@ server {
         fastcgi_cache_use_stale error timeout http_500 http_503;
         fastcgi_cache_lock on;
         
-        # Hide cache header
         fastcgi_hide_header Cache-Control;
         fastcgi_hide_header X-Powered-By;
         
@@ -172,10 +147,7 @@ server {
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
 
-    # Return 404 for all other php files not matching the front controller
-    location ~ \.php\$ {
-        return 404;
-    }
+    location ~ \.php\$ { return 404; }
 
     # WP Rocket specific rules
     location ~ /wp-content/cache/wp-rocket/.*html\$ {
@@ -196,54 +168,15 @@ server {
         expires 30s;
     }
 
-    # WP Rocket Mobile Detection
     location ~ /wp-content/cache/wp-rocket/.*-mobile\.html\$ {
         add_header Vary "Accept-Encoding, Cookie, User-Agent";
     }
-
-    # Don't cache uris containing the following segments
-    if (\$request_uri ~* "(/wp-admin/|/xmlrpc.php|/wp-(app|cron|login|register|mail).php|wp-.*.php|/feed/|index.php|wp-comments-popup.php|wp-links-opml.php|wp-locations.php|sitemap(_index)?.xml|[a-z0-9_-]+-sitemap([0-9]+)?.xml)") {
-        set \$rocket_bypass 1;
-    }
-
-    # Don't use the cache for logged in users or recent commenters
-    if (\$http_cookie ~* "wordpress_[a-f0-9]+|wp-postpass|wordpress_logged_in|comment_author|comment_author_email") {
-        set \$rocket_bypass 1;
-    }
-
-    # WooCommerce specific rules
-    if (\$request_uri ~* "/store.*|/cart.*|/my-account.*|/checkout.*|/addons.*|/wp-json.*") {
-        set \$rocket_bypass 1;
-    }
-
-    if (\$http_cookie ~* "woocommerce_items_in_cart|woocommerce_cart_hash") {
-        set \$rocket_bypass 1;
-    }
-
-    if (\$rocket_bypass = 1) {
-        set \$rocket_bypass_flag "1";
-    }
-
-    if (\$https = "on") {
-        set \$rocket_https_prefix "https";
-    }
-
-    if (\$https = "") {
-        set \$rocket_https_prefix "http";
-    }
-
-    set \$rocket_bypass_flag "";
 }
 EOF
 
-echo "VHOST for $DOMINIO created with WP Rocket optimizations"
-echo ""
-echo "Restarting NGINX"
+log_info "VHOST for $DOMINIO created with WP Rocket optimizations."
+log_info "Reloading Nginx and PHP-FPM..."
+service nginx reload
+service php-fpm reload
 
-sleep 2
-
-service nginx restart
-service php-fpm restart
-
-echo ""
-echo "Complete"
+log_info "Complete!"

@@ -1,41 +1,106 @@
 # BeastNgine
 
-Engintron inspired implementation of Varnish, Nginx, PHP83, PHP-FPM and Valkey **for FreeBSD**
+**High-Performance FreeBSD Web Stack optimized for WordPress**
 
-This only installs a very customized, secure and optimized web server stack, especially oriented to Wordpress installations
+BeastNgine is an automated deployment suite for FreeBSD, inspired by Engintron but tailored for the BSD ecosystem. It deploys a highly specific, security-hardened, and performance-tuned stack consisting of Varnish Cache (Warning: advanced configuration), Nginx, PHP-FPM, MariaDB, and Valkey (Redis fork).
 
-Keep in mind that this will not install DNS servers or Mail servers
+## 🚀 Features
 
-For DNS you can simply use Cloudflare, or your VPS provider DNS, even glue records on your domain registrar
+*   **OS**: FreeBSD 13/14+ Support
+*   **Dynamic Tuning**: Automatically detects your Hardware (RAM/CPU) and tunes:
+    *   Kernel Parameters (`sysctl.conf`, `/boot/loader.conf`)
+    *   IP/TCP Stack (Congestion control, buffers)
+    *   Database Buffers (`innodb_buffer_pool`)
+    *   Varnish Storage Size
+    *   PHP-FPM Workers & Nginx Connections
+*   **Security**:
+    *   ModSecurity v3 with OWASP CRS (Pre-configured)
+    *   PF Firewall (Packet Filter) with aggressive rules
+    *   SshGuard integration
+    *   Bot & Spam Blocking
+*   **Stack**:
+    *   **Frontend**: Varnish Cache (Port 80)
+    *   **Backend**: Nginx (Port 8080) with Brotli & ModSecurity
+    *   **App**: PHP 8.x + FPM (Dynamic Pools)
+    *   **DB**: MariaDB 10.x / 11.x
+    *   **Object Cache**: Valkey
 
-**--- PRE-INSTALLATION --**
+## 📋 Requirements
 
-Please, install it ONLY in clean FreeBSD installations to avoid some compatibility troubles
+*   Fresh installation of **FreeBSD** (Clean install recommended).
+*   Root privileges.
+*   Pkg repository configured to `latest` (recommended).
 
-Changing FreeBSD pkg repo from "quarterly" to "latest" is required
+## 🛠️ Installation
 
-You can do it editing the file `/usr/local/etc/pkg.conf`
+1.  **Clone the repository**:
+    ```sh
+    git clone https://github.com/Wamphyre/BeastNgine
+    cd BeastNgine
+    ```
 
-Don't forget to install htop, git, nano, curl and wget: `pkg install curl wget htop nano git`
+2.  **Run the Installer**:
+    ```sh
+    sh beastngine_install.sh
+    ```
+    *   *Follow the on-screen instructions carefully. You will be asked to select your network interface for the firewall.*
 
-**--- INSTALLATION ---**
+3.  **Restart**:
+    Once finished, restart your server to apply kernel and boot loader changes.
+    ```sh
+    reboot
+    ```
 
-1 - Clone the repo: `git clone https://github.com/Wamphyre/BeastNgine`
+## 🔧 Post-Installation & Helpers
 
-2 - Enter into the directory: `cd BeastNgine/`
+All utility scripts are located in the `helpers/` directory.
 
-3 - Launch beastngine_install.sh and FOLLOW CAREFULLY the instructions: `sh beastngine_install.sh`
+### 1. Add a Domain
+Create a new Virtual Host optimized for WordPress.
+```sh
+sh helpers/add_domain.sh
+# OR for WP Rocket users:
+sh helpers/add_domain_with_rocket_nginx.sh
+```
 
-4 - Once the installation is complete, restart your server
+### 2. Install SSL (Let's Encrypt)
+Automaticaly obtains a certificate, handling the Varnish port conflict for you.
+```sh
+sh helpers/autossl.sh
+```
 
-**--- POST-INSTALLATION ---**
+### 3. Database Backups
+Create a full backup (Files + SQL) of a domain. Auto-detects credentials from `wp-config.php`.
+```sh
+sh helpers/backup_creator.sh
+```
 
-0 - Launch `generate_ssl_key_sendmail.sh`
+### 4. Security
+*   **Block IP**: Permanently block an IP using PF tables.
+    ```sh
+    sh helpers/ip_blocker.sh
+    ```
+*   **Generate Mail Certs**:
+    ```sh
+    sh helpers/generate_ssl_key_sendmail.sh
+    ```
 
-1 - OPTIONAL: Change your SSH access port and use the same for `/etc/pf.conf firewall`
+### 5. Maintenance
+*   **Update System**: `sh helpers/updater.sh`
+*   **Fix Permissions**: `sh helpers/repair_permissions.sh`
 
-2 - Add your hostname to `/etc/hosts`
+## 📂 Directory Structure
 
-3 - Launch `add_domain.sh` script to create a VHOST for a domain, this will create his own directory on `/usr/local/www/public_html` and his own pre-configured VHOST on `/usr/local/etc/nginx/conf.d`
+*   `/usr/local/etc/nginx/conf.d/` - Nginx VHOSTs
+*   `/usr/local/www/public_html/` - Web Root
+*   `assets/` - Default configuration templates (Nginx, PHP, ModSec)
+*   `helpers/` - Management scripts
 
-**WARNING** FIRST, check the script and change the ssh default port to yours
+## ⚠️ Important Notes
+
+*   **DNS**: This stack does NOT install a DNS server. Use Cloudflare or your registrar's DNS.
+*   **Mail**: This stack disables Sendmail by default to save resources. Use an external SMTP service (Mailgun, Sendgrid, etc.).
+*   **Firewall**: The PF rules are strict. Ensure you define your SSH port correctly if you change it from 22.
+
+---
+*By Wamphyre*
