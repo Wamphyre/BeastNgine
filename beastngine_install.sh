@@ -354,43 +354,31 @@ if pkg info -e nginx-devel 2>/dev/null || pkg info -e nginx 2>/dev/null; then
 else
     log_info "Compiling Nginx with ModSecurity3 and Brotli..."
 
-# Compilation flags
-NGINX_OPTIONS="-D AJP=off -D ARRAYVAR=off -D AWS_AUTH=off -D BROTLI=on -D CACHE_PURGE=on \
--D CT=off -D DEBUG=off -D DEBUGLOG=off -D DEVEL_KIT=off -D DRIZZLE=off -D DSO=on \
--D DYNAMIC_UPSTREAM=off -D ECHO=off -D ENCRYPTSESSION=off -D FILE_AIO=on -D FIPS_CHECK=off \
--D FORMINPUT=off -D GOOGLE_PERFTOOLS=off -D GRIDFS=off -D GSSAPI_HEIMDAL=off -D GSSAPI_MIT=off \
--D HEADERS_MORE=off -D HTTP=on -D HTTPV2=on -D HTTPV3=on -D HTTPV3_BORING=off \
--D HTTPV3_LSSL=off -D HTTPV3_QTLS=off -D HTTP_ACCEPT_LANGUAGE=off -D HTTP_ADDITION=on \
--D HTTP_AUTH_DIGEST=off -D HTTP_AUTH_KRB5=off -D HTTP_AUTH_LDAP=off -D HTTP_AUTH_PAM=off \
--D HTTP_AUTH_REQ=on -D HTTP_CACHE=on -D HTTP_DAV=on -D HTTP_DAV_EXT=off \
--D HTTP_DEGRADATION=off -D HTTP_EVAL=off -D HTTP_FANCYINDEX=off -D HTTP_FLV=on \
--D HTTP_FOOTER=off -D HTTP_GEOIP2=on -D HTTP_GUNZIP_FILTER=on -D HTTP_GZIP_STATIC=on \
--D HTTP_IMAGE_FILTER=on -D HTTP_IP2LOCATION=on -D HTTP_IP2PROXY=on -D HTTP_JSON_STATUS=off \
--D HTTP_MOGILEFS=off -D HTTP_MP4=on -D HTTP_NOTICE=off -D HTTP_PERL=off \
--D HTTP_PUSH=off -D HTTP_PUSH_STREAM=off -D HTTP_RANDOM_INDEX=on -D HTTP_REALIP=on \
--D HTTP_REDIS=on -D HTTP_SECURE_LINK=on -D HTTP_SLICE=on -D HTTP_SLICE_AHEAD=off \
--D HTTP_SSL=on -D HTTP_STATUS=on -D HTTP_SUB=on -D HTTP_SUBS_FILTER=off \
--D HTTP_TARANTOOL=off -D HTTP_UPLOAD=off -D HTTP_UPLOAD_PROGRESS=off -D HTTP_UPSTREAM_CHECK=off \
--D HTTP_UPSTREAM_FAIR=off -D HTTP_UPSTREAM_STICKY=off -D HTTP_VIDEO_THUMBEXTRACTOR=off \
--D HTTP_XSLT=on -D HTTP_ZIP=off -D ICONV=off -D IPV6=on -D LET=off -D LINK=off \
--D LUA=off -D LUASTREAM=off -D MAIL=on -D MAIL_IMAP=off -D MAIL_POP3=off \
--D MAIL_SMTP=off -D MAIL_SSL=on -D MEMC=off -D MODSECURITY3=on -D NAXSI=off \
--D NJS=off -D NJS_XML=off -D OTEL=off -D PASSENGER=off -D POSTGRES=off \
--D RDS_CSV=off -D RDS_JSON=off -D REDIS2=on -D RTMP=off -D SET_MISC=off \
--D SFLOW=off -D SHIBBOLETH=off -D SLOWFS_CACHE=off -D SRCACHE=off -D STREAM=on \
--D STREAM_REALIP=on -D STREAM_SSL=on -D STREAM_SSL_PREREAD=on -D STS=off \
--D THREADS=on -D VOD=off -D VTS=off -D WEBSOCKIFY=off -D WWW=on -D XSS=off -D ZSTD=off"
-
+# Set Nginx build options using FreeBSD ports syntax
 cd /usr/ports/www/nginx-devel
-make $NGINX_OPTIONS install clean BATCH=YES
+
+# Configure options
+make config-conditional << EOF || true
+EOF
+
+# Build with specific options enabled
+make \
+    OPTIONS_SET="BROTLI MODSECURITY3 HTTP HTTPV2 HTTPV3 HTTP_SSL HTTP_REALIP HTTP_ADDITION HTTP_SUB HTTP_DAV HTTP_FLV HTTP_MP4 HTTP_GUNZIP_FILTER HTTP_GZIP_STATIC HTTP_AUTH_REQ HTTP_RANDOM_INDEX HTTP_SECURE_LINK HTTP_DEGRADATION HTTP_SLICE HTTP_STUB_STATUS MAIL MAIL_SSL STREAM STREAM_SSL STREAM_REALIP STREAM_SSL_PREREAD HTTP_GZIP HTTP_REDIS HTTP_IMAGE_FILTER HTTP_XSLT THREADS CACHE_PURGE" \
+    OPTIONS_UNSET="DEBUG DEBUGLOG MAIL_IMAP MAIL_POP3 MAIL_SMTP" \
+    install clean BATCH=yes
 
 # Verify ModSecurity module was compiled
 if [ ! -f "/usr/local/libexec/nginx/ngx_http_modsecurity_module.so" ]; then
     log_warn "ModSecurity module not found. Disabling it in nginx.conf"
-    # Comment out the load_module line for modsecurity
     sed -i '' 's/^load_module.*modsecurity_module.so;/# &/' "${SCRIPT_DIR}/assets/nginx.conf"
-    # Comment out modsecurity directives
     sed -i '' 's/^[[:space:]]*modsecurity /# &/' "${SCRIPT_DIR}/assets/nginx.conf"
+fi
+
+# Verify Brotli modules
+if [ ! -f "/usr/local/libexec/nginx/ngx_http_brotli_filter_module.so" ]; then
+    log_warn "Brotli modules not found. Disabling in nginx.conf"
+    sed -i '' 's/^load_module.*brotli.*module.so;/# &/' "${SCRIPT_DIR}/assets/nginx.conf"
+    sed -i '' 's/^[[:space:]]*brotli /# &/' "${SCRIPT_DIR}/assets/nginx.conf"
 fi
 fi
 
@@ -572,10 +560,12 @@ if ! /usr/local/sbin/nginx -t 2>&1 | grep -q "successful"; then
     
     # Rebuild nginx WITHOUT ModSecurity
     log_info "Recompiling Nginx without ModSecurity..."
-    NGINX_OPTIONS_CLEAN="-D MODSECURITY3=off -D BROTLI=on -D HTTP=on -D HTTPV2=on -D HTTPV3=on -D HTTP_SSL=on -D STREAM=on"
     
     cd /usr/ports/www/nginx-devel
-    make $NGINX_OPTIONS_CLEAN install clean BATCH=YES
+    make \
+        OPTIONS_SET="BROTLI HTTP HTTPV2 HTTPV3 HTTP_SSL HTTP_REALIP STREAM STREAM_SSL THREADS" \
+        OPTIONS_UNSET="MODSECURITY3 DEBUG" \
+        install clean BATCH=yes
     
     # Disable ModSecurity in config
     log_info "Disabling ModSecurity in nginx.conf..."
