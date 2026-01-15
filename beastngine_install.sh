@@ -41,10 +41,13 @@ log_info "Starting BeastNgine Installation..."
 log_info "Updating package repositories..."
 pkg update -f
 
+# Ensure git is installed for ports collection
+pkg install -y git
+
 log_info "Detecting latest software versions..."
 
 # PHP Detection (looks for highest php[0-9][0-9])
-PHP_PKG=$(pkg search -Basic -S name -Q '^php[0-9]{2}$' | sort -V | tail -n1)
+PHP_PKG=$(pkg search -x '^php[0-9]{2}$' | cut -d ' ' -f 1 | grep -v 'php[0-9]*-' | sort -V | tail -n1)
 if [ -z "$PHP_PKG" ]; then
     log_warn "Could not auto-detect PHP version. Defaulting to php83."
     PHP_PKG="php83"
@@ -53,7 +56,8 @@ PHP_VER=${PHP_PKG#php} # extracts '83' from 'php83'
 log_info "Selected PHP Version: $PHP_PKG"
 
 # MariaDB Detection (looks for mariadb[0-9]*-server)
-MARIADB_SERVER_PKG=$(pkg search -Basic -S name -Q '^mariadb[0-9]+-server$' | sort -V | tail -n1)
+# MariaDB Detection (looks for mariadb[0-9]*-server)
+MARIADB_SERVER_PKG=$(pkg search -x '^mariadb[0-9]+-server$' | cut -d ' ' -f 1 | sort -V | tail -n1)
 if [ -z "$MARIADB_SERVER_PKG" ]; then
     log_warn "Could not auto-detect MariaDB version. Defaulting to mariadb1011-server."
     MARIADB_SERVER_PKG="mariadb1011-server"
@@ -65,7 +69,8 @@ fi
 log_info "Selected MariaDB: $MARIADB_SERVER_PKG"
 
 # Varnish Detection
-VARNISH_PKG=$(pkg search -Basic -S name -Q '^varnish[0-9]+$' | sort -V | tail -n1)
+# Varnish Detection
+VARNISH_PKG=$(pkg search -x '^varnish[0-9]+$' | cut -d ' ' -f 1 | sort -V | tail -n1)
 if [ -z "$VARNISH_PKG" ]; then
     log_warn "Could not auto-detect Varnish version. Defaulting to varnish7."
     VARNISH_PKG="varnish7"
@@ -73,8 +78,9 @@ fi
 log_info "Selected Varnish: $VARNISH_PKG"
 
 # Certbot Detection
-CERTBOT_PKG=$(pkg search -Basic -S name -Q '^py[0-9]+-certbot$' | sort -V | tail -n1)
-CERTBOT_NGINX_PKG=$(pkg search -Basic -S name -Q '^py[0-9]+-certbot-nginx$' | sort -V | tail -n1)
+# Certbot Detection
+CERTBOT_PKG=$(pkg search -x '^py[0-9]+-certbot$' | cut -d ' ' -f 1 | sort -V | tail -n1)
+CERTBOT_NGINX_PKG=$(pkg search -x '^py[0-9]+-certbot-nginx$' | cut -d ' ' -f 1 | sort -V | tail -n1)
 if [ -z "$CERTBOT_PKG" ]; then
     CERTBOT_PKG="py39-certbot"
     CERTBOT_NGINX_PKG="py39-certbot-nginx"
@@ -163,9 +169,16 @@ log_info "Upgrading installed packages..."
 pkg upgrade -y
 
 log_info "Extracting/Updating Ports Collection..."
+log_info "Extracting/Updating Ports Collection..."
 if [ -d "/usr/ports/.git" ]; then
+    log_info "/usr/ports is already a git repo. Pulling changes..."
     git -C /usr/ports pull
+elif [ -d "/usr/ports" ]; then
+    log_warn "/usr/ports exists but is NOT a git repo. Backing up and cloning fresh..."
+    mv /usr/ports "/usr/ports.bak_$(date +%Y%m%d_%H%M%S)"
+    git clone --depth 1 https://git.FreeBSD.org/ports.git /usr/ports
 else
+    log_info "Cloning Ports Collection..."
     git clone --depth 1 https://git.FreeBSD.org/ports.git /usr/ports
 fi
 
@@ -185,7 +198,7 @@ pkg install -y $PHP_PKG $PHP_EXTS
 pkg install -y $MARIADB_SERVER_PKG $MARIADB_CLIENT_PKG
 pkg install -y $CERTBOT_PKG $CERTBOT_NGINX_PKG
 pkg install -y $VARNISH_PKG valkey
-pkg install -y nano htop git libtool automake autoconf curl
+pkg install -y nano htop libtool automake autoconf curl
 pkg install -y libxml2 libxslt modsecurity3 python binutils pcre libgd devcpu-data
 
 # SSHGuard
