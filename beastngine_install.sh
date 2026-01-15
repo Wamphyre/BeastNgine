@@ -6,11 +6,18 @@ set -e
 # Refactored & Modernized
 # ==========================================
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-NC='\033[0m'
+# Colors (using tput for reliability)
+if command -v tput >/dev/null 2>&1; then
+    RED=$(tput setaf 1)
+    GREEN=$(tput setaf 2)
+    YELLOW=$(tput setaf 3)
+    NC=$(tput sgr0)
+else
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[0;33m'
+    NC='\033[0m'
+fi
 
 # Helper Functions
 log_info() {
@@ -26,10 +33,76 @@ log_error() {
     exit 1
 }
 
-get_latest_version() {
-    pattern="$1"
-    # Search for regex, strip version, sort version number numerically, take last
-    pkg search -x "$pattern" | cut -d ' ' -f 1 | grep -v 'php[0-9]*-' | sort -V | tail -n1
+# Interactive Version Chooser
+choose_version_from_list() {
+    name="$1"
+    shift
+    # Print to stderr to allow capturing stdout
+    printf "${YELLOW}Multiple options found for %s. Please select one:${NC}\n" "$name" >&2
+    
+    i=1
+    for pkg in "$@"; do
+        printf "%d) %s\n" "$i" "$pkg" >&2
+        i=$((i+1))
+    done
+    
+    while true; do
+        printf "Enter number (1-%d): " "$((i-1))" >&2
+        read choice
+        
+        if [ "$choice" -ge 1 ] && [ "$choice" -lt "$i" ] 2>/dev/null; then
+             count=1
+             for pkg in "$@"; do
+                 if [ "$count" -eq "$choice" ]; then
+                     echo "$pkg"
+                     return
+                 fi
+                 count=$((count+1))
+             done
+        else
+            printf "${RED}Invalid selection. Try again.${NC}\n" >&2
+        fi
+    done
+}
+
+# Robust Detection with Fallback
+detect_or_choose() {
+    human_name="$1"
+    strict_pattern="$2"
+    broad_pattern="$3"
+    exclusion="$4"
+
+    # Try strict first
+    if [ -n "$exclusion" ]; then
+        results=$(pkg search -x "$strict_pattern" | cut -d ' ' -f 1 | grep -v "$exclusion" | sort -V)
+    else
+        results=$(pkg search -x "$strict_pattern" | cut -d ' ' -f 1 | sort -V)
+    fi
+
+    if [ -n "$results" ]; then
+        # Auto-select highest from strict search
+        echo "$results" | tail -n1
+    else
+        log_warn "Strict detection failed for $human_name. Attempting broader search..." >&2
+        
+        if [ -n "$broad_pattern" ]; then
+            if [ -n "$exclusion" ]; then
+                broad_results=$(pkg search -x "$broad_pattern" | cut -d ' ' -f 1 | grep -v "$exclusion" | sort -V)
+            else
+                broad_results=$(pkg search -x "$broad_pattern" | cut -d ' ' -f 1 | sort -V)
+            fi
+
+            if [ -n "$broad_results" ]; then
+                # Interactive selection
+                # We interpret newline separated list as args
+                choose_version_from_list "$human_name" $broad_results
+            else
+                log_error "No packages found for $human_name (checked strict: $strict_pattern, broad: $broad_pattern)."
+            fi
+        else
+             log_error "No packages found for $human_name."
+        fi
+    fi
 }
 
 # Check if running as root
@@ -52,38 +125,38 @@ pkg install -y git
 
 log_info "Detecting latest software versions..."
 
-# PHP Detection (looks for highest php[0-9][0-9])
-PHP_PKG=$(get_latest_version '^php[0-9]{2}$')
+# PHP Detection
+PHP_PKG=$(detect_or_choose "PHP" '^php[0-9]{2}$' '^php[0-9]+$' 'php[0-9]*-')
 if [ -z "$PHP_PKG" ]; then
-    log_warn "Could not auto-detect PHP version. Defaulting to php83."
+    log_warn "PHP selection failed. Defaulting to php83."
     PHP_PKG="php83"
 fi
-PHP_VER=${PHP_PKG#php} # extracts '83' from 'php83'
+PHP_VER=${PHP_PKG#php}
 log_info "Selected PHP Version: $PHP_PKG"
 
-# MariaDB Detection (looks for mariadb[0-9]*-server)
-MARIADB_SERVER_PKG=$(get_latest_version '^mariadb[0-9]+-server$')
+# MariaDB Detection
+# Strict: mariadb1011-server, Broad: mariadb*-server
+MARIADB_SERVER_PKG=$(detect_or_choose "MariaDB Server" '^mariadb[0-9]+-server$' '^mariadb.*-server$')
 if [ -z "$MARIADB_SERVER_PKG" ]; then
-    log_warn "Could not auto-detect MariaDB version. Defaulting to mariadb1011-server."
+    log_warn "MariaDB selection failed. Defaulting to mariadb1011-server."
     MARIADB_SERVER_PKG="mariadb1011-server"
     MARIADB_CLIENT_PKG="mariadb1011-client"
 else
-    # derive client name (e.g., mariadb114-server -> mariadb114-client)
     MARIADB_CLIENT_PKG=$(echo "$MARIADB_SERVER_PKG" | sed 's/-server/-client/')
 fi
 log_info "Selected MariaDB: $MARIADB_SERVER_PKG"
 
 # Varnish Detection
-VARNISH_PKG=$(get_latest_version '^varnish[0-9]+$')
+VARNISH_PKG=$(detect_or_choose "Varnish" '^varnish[0-9]+$' '^varnish')
 if [ -z "$VARNISH_PKG" ]; then
-    log_warn "Could not auto-detect Varnish version. Defaulting to varnish7."
+    log_warn "Varnish selection failed. Defaulting to varnish7."
     VARNISH_PKG="varnish7"
 fi
 log_info "Selected Varnish: $VARNISH_PKG"
 
 # Certbot Detection
-CERTBOT_PKG=$(get_latest_version '^py[0-9]+-certbot$')
-CERTBOT_NGINX_PKG=$(get_latest_version '^py[0-9]+-certbot-nginx$')
+CERTBOT_PKG=$(detect_or_choose "Certbot" '^py[0-9]+-certbot$' '^py.*-certbot$')
+CERTBOT_NGINX_PKG=$(detect_or_choose "Certbot-Nginx" '^py[0-9]+-certbot-nginx$' '^py.*-certbot-nginx$')
 if [ -z "$CERTBOT_PKG" ]; then
     CERTBOT_PKG="py39-certbot"
     CERTBOT_NGINX_PKG="py39-certbot-nginx"
