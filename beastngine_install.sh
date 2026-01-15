@@ -71,49 +71,41 @@ detect_or_choose() {
     human_name="$1"
     search_query="$2"
     grep_filter="$3"
+    mode="${4:-origin}" # default to 'origin' search
 
-    # 1. Broad Search: Get everything matching the query (quiet, origin format)
-    # Output format: category/pkgname (e.g. lang/php83)
-    raw_list=$(pkg search -o -q "$search_query" || true)
-
-    if [ -z "$raw_list" ]; then
-        log_error "No packages found for query: $search_query"
+    # 1. Broad Search
+    if [ "$mode" = "name" ]; then
+        # Search by name (-q returns name-version)
+        # We need to strip version suffix (e.g. -10.11.6 or -3.11)
+        raw_list=$(pkg search -q "$search_query" | sed -E 's/-[0-9][0-9.]*$//' || true)
+    else
+        # Search by origin (-o -q returns category/name)
+        # We strip category
+        raw_list=$(pkg search -o -q "$search_query" | cut -d/ -f2 || true)
     fi
 
-    # 2. Local Filter: Use grep to strictly match what we want
-    # We filter the raw_list (category/pkgname) against the grep_filter
-    candidates=$(echo "$raw_list" | grep "$grep_filter" | cut -d/ -f2 | sort -V | uniq)
+    if [ -z "$raw_list" ]; then
+        log_warn "No packages found for query: $search_query"
+        return 1
+    fi
+
+    # 2. Local Filter
+    candidates=$(echo "$raw_list" | grep "$grep_filter" | sort -V | uniq)
 
     if [ -z "$candidates" ]; then
         log_warn "No suitable $human_name version found after filtering."
-        # Optional: Show raw list? Or just error? 
-        # For now, let's allow interactive choice from the RAW list if filter fails?
-        # That might be too much noise. Let's just fail and ask user to check repos.
-        log_error "Could not detect a valid $human_name package."
+        return 1
     fi
 
     # 3. Selection
     count=$(echo "$candidates" | wc -l)
     
     if [ "$count" -eq 1 ]; then
-        # Only one match, use it
         echo "$candidates"
     else
-        # Multiple matches.
-        # Strategy: Try to pick the highest version automatically.
-        # If the user wants interactive, we can fallback to that if ambiguity is high, 
-        # but usually highest version is what we want (e.g. php84 over php83).
-        
         highest=$(echo "$candidates" | tail -n1)
-        
-        # If we want to be safe, we could log that we picked highest?
-        # But this function returns the string for assignment, so we can't log to stdout.
-        # We can log to stderr.
-        log_info "Auto-selected highest version: $highest" >&2
+        log_info "Auto-selected highest version for $human_name: $highest" >&2
         echo "$highest"
-        
-        # NOTE: If we wanted to FORCE interaction for multiple choices, we would do:
-        # choose_version_from_list "$human_name" $candidates
     fi
 }
 
@@ -172,9 +164,14 @@ fi
 log_info "Selected Varnish: $VARNISH_PKG"
 
 # Certbot Detection
-CERTBOT_PKG=$(detect_or_choose "Certbot" "certbot" "\/py[0-9]\+-certbot$")
-CERTBOT_NGINX_PKG=$(detect_or_choose "Certbot-Nginx" "certbot-nginx" "\/py[0-9]\+-certbot-nginx$")
+# Query: "certbot"
+# Mode: "name" (because we want py39-certbot, and origin is just security/py-certbot which tells us nothing about python version)
+# Filter: match ^pyXX-certbot$
+CERTBOT_PKG=$(detect_or_choose "Certbot" "certbot" "^py[0-9]\+-certbot$" "name")
+CERTBOT_NGINX_PKG=$(detect_or_choose "Certbot-Nginx" "certbot-nginx" "^py[0-9]\+-certbot-nginx$" "name")
+
 if [ -z "$CERTBOT_PKG" ]; then
+    log_warn "Certbot detection failed. Defaulting to py39-certbot."
     CERTBOT_PKG="py39-certbot"
     CERTBOT_NGINX_PKG="py39-certbot-nginx"
 fi
