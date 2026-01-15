@@ -48,7 +48,7 @@ choose_version_from_list() {
     
     while true; do
         printf "Enter number (1-%d): " "$((i-1))" >&2
-        read choice
+        read choice < /dev/tty
         
         if [ "$choice" -ge 1 ] && [ "$choice" -lt "$i" ] 2>/dev/null; then
              count=1
@@ -72,11 +72,11 @@ detect_or_choose() {
     broad_pattern="$3"
     exclusion="$4"
 
-    # Try strict first
+    # Try strict first (using origin -o to get category/portname, then stripping category)
     if [ -n "$exclusion" ]; then
-        results=$(pkg search -x "$strict_pattern" | cut -d ' ' -f 1 | grep -v "$exclusion" | sort -V)
+        results=$(pkg search -o -q -x "$strict_pattern" | cut -d/ -f2 | grep -v "$exclusion" | sort -V || true)
     else
-        results=$(pkg search -x "$strict_pattern" | cut -d ' ' -f 1 | sort -V)
+        results=$(pkg search -o -q -x "$strict_pattern" | cut -d/ -f2 | sort -V || true)
     fi
 
     if [ -n "$results" ]; then
@@ -87,9 +87,9 @@ detect_or_choose() {
         
         if [ -n "$broad_pattern" ]; then
             if [ -n "$exclusion" ]; then
-                broad_results=$(pkg search -x "$broad_pattern" | cut -d ' ' -f 1 | grep -v "$exclusion" | sort -V)
+                broad_results=$(pkg search -o -q -x "$broad_pattern" | cut -d/ -f2 | grep -v "$exclusion" | sort -V || true)
             else
-                broad_results=$(pkg search -x "$broad_pattern" | cut -d ' ' -f 1 | sort -V)
+                broad_results=$(pkg search -o -q -x "$broad_pattern" | cut -d/ -f2 | sort -V || true)
             fi
 
             if [ -n "$broad_results" ]; then
