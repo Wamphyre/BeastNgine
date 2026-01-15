@@ -86,7 +86,7 @@ detect_or_choose() {
 
     if [ -z "$raw_list" ]; then
         log_warn "No packages found for query: $search_query"
-        return 1
+        return 0
     fi
 
     # 2. Local Filter
@@ -94,7 +94,7 @@ detect_or_choose() {
 
     if [ -z "$candidates" ]; then
         log_warn "No suitable $human_name version found after filtering."
-        return 1
+        return 0
     fi
 
     # 3. Selection
@@ -128,38 +128,43 @@ pkg update -f
 pkg install -y git
 
 log_info "Detecting latest software versions..."
-
-# PHP Detection
-# Query: "php" (broad)
-# Filter: match lines ending with /phpXX (e.g. lang/php83)
-PHP_PKG=$(detect_or_choose "PHP" "php" "\/php[0-9]\{2\}$")
-if [ -z "$PHP_PKG" ]; then
-    log_warn "PHP selection failed. Defaulting to php83."
-    PHP_PKG="php83"
-fi
-PHP_VER=${PHP_PKG#php}
-log_info "Selected PHP Version: $PHP_PKG"
-
-# MariaDB Detection
-# Query: "mariadb"
-# Filter: match lines ending with /mariadbXX-server or /mariadbXXX-server
-MARIADB_SERVER_PKG=$(detect_or_choose "MariaDB Server" "mariadb" "\/mariadb[0-9]\+-server$")
-if [ -z "$MARIADB_SERVER_PKG" ]; then
-    log_warn "MariaDB selection failed. Defaulting to mariadb1011-server."
-    MARIADB_SERVER_PKG="mariadb1011-server"
-    MARIADB_CLIENT_PKG="mariadb1011-client"
-else
-    MARIADB_CLIENT_PKG=$(echo "$MARIADB_SERVER_PKG" | sed 's/-server/-client/')
-fi
-log_info "Selected MariaDB: $MARIADB_SERVER_PKG"
-
-# Varnish Detection
-# Query: "varnish"
-# Filter: match lines ending with /varnishX (e.g. www/varnish7)
-VARNISH_PKG=$(detect_or_choose "Varnish" "varnish" "\/varnish[0-9]\+$")
-if [ -z "$VARNISH_PKG" ]; then
-    log_warn "Varnish selection failed. Defaulting to varnish7."
-    VARNISH_PKG="varnish7"
+ 
+ # PHP Detection
+-# Query: "php" (broad)
+-# Filter: match lines ending with /phpXX (e.g. lang/php83)
+-PHP_PKG=$(detect_or_choose "PHP" "php" "\/php[0-9]\{2\}$")
++# Query: "php" (broad)
++# Filter: match clean name (e.g. php83)
++PHP_PKG=$(detect_or_choose "PHP" "php" "^php[0-9]\{2\}$")
+ if [ -z "$PHP_PKG" ]; then
+     log_warn "PHP selection failed. Defaulting to php83."
+     PHP_PKG="php83"
+@@ -134,8 +134,8 @@
+ log_info "Selected PHP Version: $PHP_PKG"
+ 
+ # MariaDB Detection
+-# Query: "mariadb"
+-# Filter: match lines ending with /mariadbXX-server or /mariadbXXX-server
+-MARIADB_SERVER_PKG=$(detect_or_choose "MariaDB Server" "mariadb" "\/mariadb[0-9]\+-server$")
++# Query: "mariadb"
++# Filter: match clean name (e.g. mariadb1011-server)
++MARIADB_SERVER_PKG=$(detect_or_choose "MariaDB Server" "mariadb" "^mariadb[0-9]\+-server$")
+ if [ -z "$MARIADB_SERVER_PKG" ]; then
+     log_warn "MariaDB selection failed. Defaulting to mariadb1011-server."
+     MARIADB_SERVER_PKG="mariadb1011-server"
+@@ -145,8 +145,8 @@
+ log_info "Selected MariaDB: $MARIADB_SERVER_PKG"
+ 
+ # Varnish Detection
+-# Query: "varnish"
+-# Filter: match lines ending with /varnishX (e.g. www/varnish7)
+-VARNISH_PKG=$(detect_or_choose "Varnish" "varnish" "\/varnish[0-9]\+$")
++# Query: "varnish"
++# Filter: match clean name (e.g. varnish7)
++VARNISH_PKG=$(detect_or_choose "Varnish" "varnish" "^varnish[0-9]\+$")
+ if [ -z "$VARNISH_PKG" ]; then
+     log_warn "Varnish selection failed. Defaulting to varnish7."
+     VARNISH_PKG="varnish7"
 fi
 log_info "Selected Varnish: $VARNISH_PKG"
 
