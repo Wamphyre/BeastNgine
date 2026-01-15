@@ -383,6 +383,15 @@ NGINX_OPTIONS="-D AJP=off -D ARRAYVAR=off -D AWS_AUTH=off -D BROTLI=on -D CACHE_
 
 cd /usr/ports/www/nginx-devel
 make $NGINX_OPTIONS install clean BATCH=YES
+
+# Verify ModSecurity module was compiled
+if [ ! -f "/usr/local/libexec/nginx/ngx_http_modsecurity_module.so" ]; then
+    log_warn "ModSecurity module not found. Disabling it in nginx.conf"
+    # Comment out the load_module line for modsecurity
+    sed -i '' 's/^load_module.*modsecurity_module.so;/# &/' "${SCRIPT_DIR}/assets/nginx.conf"
+    # Comment out modsecurity directives
+    sed -i '' 's/^[[:space:]]*modsecurity /# &/' "${SCRIPT_DIR}/assets/nginx.conf"
+fi
 fi
 
 # ==========================================
