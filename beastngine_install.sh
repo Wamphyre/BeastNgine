@@ -277,14 +277,23 @@ fi
 # ==========================================
 log_info "Installing Dependencies..."
 
-# Construct PHP extensions list dynamically
-PHP_EXTS="${PHP_PKG}-bcmath ${PHP_PKG}-ctype ${PHP_PKG}-curl ${PHP_PKG}-dom \
-${PHP_PKG}-exif ${PHP_PKG}-fileinfo ${PHP_PKG}-filter ${PHP_PKG}-ftp \
-${PHP_PKG}-gd ${PHP_PKG}-iconv ${PHP_PKG}-intl ${PHP_PKG}-mbstring \
-${PHP_PKG}-mysqli ${PHP_PKG}-opcache ${PHP_PKG}-pdo ${PHP_PKG}-pecl-redis \
-${PHP_PKG}-session ${PHP_PKG}-tokenizer ${PHP_PKG}-xml ${PHP_PKG}-zip ${PHP_PKG}-zlib"
+# Construct and Verify PHP extensions list dynamically
+DESIRED_EXTS="bcmath ctype curl dom exif fileinfo filter ftp gd iconv intl mbstring mysqli opcache pdo pecl-redis session tokenizer xml zip zlib"
+VALID_PHP_EXTS=""
 
-pkg install -y $PHP_PKG $PHP_EXTS
+log_info "Verifying PHP extensions..."
+for ext in $DESIRED_EXTS; do
+    PKG_NAME="${PHP_PKG}-${ext}"
+    # Check if package exists (search by name, quiet)
+    # Using simple search -q and ensuring exact match
+    if pkg search -q "^${PKG_NAME}$" >/dev/null 2>&1; then
+        VALID_PHP_EXTS="$VALID_PHP_EXTS $PKG_NAME"
+    else
+        log_warn "PHP extension '$PKG_NAME' not found in repositories. Skipping."
+    fi
+done
+
+pkg install -y $PHP_PKG $VALID_PHP_EXTS
 pkg install -y $MARIADB_SERVER_PKG $MARIADB_CLIENT_PKG
 pkg install -y $CERTBOT_PKG $CERTBOT_NGINX_PKG
 pkg install -y $VARNISH_PKG valkey
