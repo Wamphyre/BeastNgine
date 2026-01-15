@@ -171,9 +171,10 @@ CERTBOT_PKG=$(detect_or_choose "Certbot" "certbot" "^py[0-9]\+-certbot$" "name")
 CERTBOT_NGINX_PKG=$(detect_or_choose "Certbot-Nginx" "certbot-nginx" "^py[0-9]\+-certbot-nginx$" "name")
 
 if [ -z "$CERTBOT_PKG" ]; then
-    log_warn "Certbot detection failed. Defaulting to py39-certbot."
-    CERTBOT_PKG="py39-certbot"
-    CERTBOT_NGINX_PKG="py39-certbot-nginx"
+    log_warn "Certbot not found in repositories. Skipping Certbot installation."
+    log_warn "You can install it manually later if needed."
+    CERTBOT_PKG=""
+    CERTBOT_NGINX_PKG=""
 fi
 
 # Resource Detection for Tuning
@@ -295,7 +296,14 @@ done
 
 pkg install -y $PHP_PKG $VALID_PHP_EXTS
 pkg install -y $MARIADB_SERVER_PKG $MARIADB_CLIENT_PKG
-pkg install -y $CERTBOT_PKG $CERTBOT_NGINX_PKG
+
+# Certbot - only install if available
+if [ -n "$CERTBOT_PKG" ]; then
+    pkg install -y $CERTBOT_PKG $CERTBOT_NGINX_PKG
+else
+    log_warn "Skipping Certbot installation (not available in repositories)"
+fi
+
 pkg install -y $VARNISH_PKG valkey
 pkg install -y nano htop libtool automake autoconf curl
 pkg install -y libxml2 libxslt modsecurity3 python binutils pcre libgd devcpu-data
