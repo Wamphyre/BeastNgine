@@ -114,6 +114,10 @@ if [ "$(id -u)" -ne 0 ]; then
    log_error "This script must be run as root"
 fi
 
+# Store script directory for asset file access
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+log_info "Script directory: $SCRIPT_DIR"
+
 # ==========================================
 # 0. Preparation & Dynamic Version Detection
 # ==========================================
@@ -174,12 +178,16 @@ fi
 log_info "Selected Varnish: $VARNISH_PKG"
 
 # Certbot Detection
-# Query: "certbot"
-# Mode: "name" (because we want py311-certbot, and origin is just security/py-certbot which tells us nothing about python version)
-# Filter: match ^pyXX-certbot$
-# Note: Current version appears to be py311-certbot-nginx
-CERTBOT_PKG=$(detect_or_choose "Certbot" "certbot" "^py[0-9]\+-certbot$" "name")
-CERTBOT_NGINX_PKG=$(detect_or_choose "Certbot-Nginx" "certbot-nginx" "^py[0-9]\+-certbot-nginx$" "name")
+# Try common Python versions for certbot
+log_info "Detecting Certbot..."
+for pyver in 311 312 39; do
+    if pkg search -q -x "^py${pyver}-certbot$" >/dev/null 2>&1; then
+        CERTBOT_PKG="py${pyver}-certbot"
+        CERTBOT_NGINX_PKG="py${pyver}-certbot-nginx"
+        log_info "Found Certbot: $CERTBOT_PKG"
+        break
+    fi
+done
 
 if [ -z "$CERTBOT_PKG" ]; then
     log_warn "Certbot not found in repositories. Skipping Certbot installation."
@@ -296,9 +304,8 @@ VALID_PHP_EXTS=""
 log_info "Verifying PHP extensions..."
 for ext in $DESIRED_EXTS; do
     PKG_NAME="${PHP_PKG}-${ext}"
-    # Check if package exists (search by name, quiet)
-    # Using simple search -q and ensuring exact match
-    if pkg search -q "^${PKG_NAME}$" >/dev/null 2>&1; then
+    # Check if package exists using simple search (no regex needed)
+    if pkg search -q -x "^${PKG_NAME}$" >/dev/null 2>&1; then
         VALID_PHP_EXTS="$VALID_PHP_EXTS $PKG_NAME"
     else
         log_warn "PHP extension '$PKG_NAME' not found in repositories. Skipping."
@@ -323,12 +330,12 @@ pkg install -y libxml2 libxslt modsecurity3 python binutils pcre libgd
 cd /usr/ports/security/sshguard && make install clean BATCH=yes
 
 # Configure SSHGuard
-if [ -f "assets/sshguard.conf" ]; then
+if [ -f "${SCRIPT_DIR}/assets/sshguard.conf" ]; then
     log_info "Configuring SSHGuard..."
     mv /usr/local/etc/sshguard.conf /usr/local/etc/sshguard.conf.bk 2>/dev/null || true
-    cp assets/sshguard.conf /usr/local/etc/sshguard.conf
+    cp "${SCRIPT_DIR}/assets/sshguard.conf" /usr/local/etc/sshguard.conf
 else
-    log_warn "assets/sshguard.conf not found. Skipping copy."
+    log_warn "${SCRIPT_DIR}/assets/sshguard.conf not found. Skipping copy."
 fi
 
 # ==========================================
@@ -389,10 +396,9 @@ fi
 mv /usr/local/etc/modsecurity/crs/REQUEST-901-INITIALIZATION.conf /usr/local/etc/modsecurity/crs/REQUEST-901-INITIALIZATION.conf_OFF 2>/dev/null || true
 
 # Copy local security configs
-cd "$OLDPWD" # Go back to BeastNgine dir
-cp assets/ip_blacklist.txt /usr/local/etc/modsecurity/
-cp assets/ip_blacklist.conf /usr/local/etc/modsecurity/
-cp assets/unicode.mapping /usr/local/etc/modsecurity/
+cp "${SCRIPT_DIR}/assets/ip_blacklist.txt" /usr/local/etc/modsecurity/
+cp "${SCRIPT_DIR}/assets/ip_blacklist.conf" /usr/local/etc/modsecurity/
+cp "${SCRIPT_DIR}/assets/unicode.mapping" /usr/local/etc/modsecurity/
 
 # Enable Rule Engine
 sed -i '' 's/^[[:space:]]*SecRuleEngine DetectionOnly/SecRuleEngine On/' /usr/local/etc/modsecurity/modsecurity.conf
@@ -445,7 +451,7 @@ log_info "Deploying Configuration Files..."
 # PHP-FPM
 mkdir -p /var/log/php-fpm
 mv /usr/local/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf.bk 2>/dev/null || true
-cp assets/www.conf /usr/local/etc/php-fpm.d/
+cp "${SCRIPT_DIR}/assets/www.conf" /usr/local/etc/php-fpm.d/
 # Apply Dynamic PHP Tuning using sed
 sed -i '' "s/^pm.max_children.*/pm.max_children = ${PHP_MAX_CHILDREN}/" /usr/local/etc/php-fpm.d/www.conf
 sed -i '' "s/^pm.start_servers.*/pm.start_servers = ${PHP_START_SERVERS}/" /usr/local/etc/php-fpm.d/www.conf
@@ -455,23 +461,23 @@ sed -i '' "s/^php_value\[memory_limit\].*/php_value[memory_limit] = ${PHP_MEMORY
 
 # Varnish
 mkdir -p /usr/local/etc/varnish
-cp assets/wordpress.vcl /usr/local/etc/varnish/
+cp "${SCRIPT_DIR}/assets/wordpress.vcl" /usr/local/etc/varnish/
 
 # Valkey
-cp assets/valkey.conf /usr/local/etc/
+cp "${SCRIPT_DIR}/assets/valkey.conf" /usr/local/etc/
 
 # PHP
 mv /usr/local/etc/php.ini-production /usr/local/etc/php.ini-production.bk 2>/dev/null || true
-cp assets/php.ini /usr/local/etc/
+cp "${SCRIPT_DIR}/assets/php.ini" /usr/local/etc/
 
 # Nginx
 mv /usr/local/etc/nginx/nginx.conf /usr/local/etc/nginx/nginx.conf.bk 2>/dev/null || true
-cp assets/nginx.conf /usr/local/etc/nginx/
+cp "${SCRIPT_DIR}/assets/nginx.conf" /usr/local/etc/nginx/
 # Apply Dynamic Nginx Tuning
 sed -i '' "s/worker_connections [0-9]*;/worker_connections ${NGINX_WORKER_CONNS};/" /usr/local/etc/nginx/nginx.conf
 
 mv /usr/local/etc/nginx/mime.types /usr/local/etc/nginx/mime.types.bk 2>/dev/null || true
-cp assets/mime.types /usr/local/etc/nginx/
+cp "${SCRIPT_DIR}/assets/mime.types" /usr/local/etc/nginx/
 
 mkdir -p /usr/local/etc/nginx/conf.d
 
