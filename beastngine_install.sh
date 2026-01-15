@@ -129,14 +129,24 @@ pkg install -y git
 
 log_info "Detecting latest software versions..."
  
-# PHP Detection
-# Query: "php" (broad)
-# Filter: match clean name (e.g. php83)
-PHP_PKG=$(detect_or_choose "PHP" "php" "^php[0-9]\{2\}$")
-if [ -z "$PHP_PKG" ]; then
-    log_warn "PHP selection failed. Defaulting to php83."
-    PHP_PKG="php83"
-fi
+# PHP Detection - Interactive Selection
+log_info "Available PHP versions: php84, php85"
+printf "${YELLOW}Which PHP version would you like to install? (84/85): ${NC}" >&2
+read -r PHP_CHOICE < /dev/tty
+
+case "$PHP_CHOICE" in
+    84)
+        PHP_PKG="php84"
+        ;;
+    85)
+        PHP_PKG="php85"
+        ;;
+    *)
+        log_warn "Invalid choice. Defaulting to php84."
+        PHP_PKG="php84"
+        ;;
+esac
+
 PHP_VER=${PHP_PKG#php}
 log_info "Selected PHP Version: $PHP_PKG"
 
@@ -165,8 +175,9 @@ log_info "Selected Varnish: $VARNISH_PKG"
 
 # Certbot Detection
 # Query: "certbot"
-# Mode: "name" (because we want py39-certbot, and origin is just security/py-certbot which tells us nothing about python version)
+# Mode: "name" (because we want py311-certbot, and origin is just security/py-certbot which tells us nothing about python version)
 # Filter: match ^pyXX-certbot$
+# Note: Current version appears to be py311-certbot-nginx
 CERTBOT_PKG=$(detect_or_choose "Certbot" "certbot" "^py[0-9]\+-certbot$" "name")
 CERTBOT_NGINX_PKG=$(detect_or_choose "Certbot-Nginx" "certbot-nginx" "^py[0-9]\+-certbot-nginx$" "name")
 
@@ -306,7 +317,7 @@ fi
 
 pkg install -y $VARNISH_PKG valkey
 pkg install -y nano htop libtool automake autoconf curl
-pkg install -y libxml2 libxslt modsecurity3 python binutils pcre libgd devcpu-data
+pkg install -y libxml2 libxslt modsecurity3 python binutils pcre libgd
 
 # SSHGuard
 cd /usr/ports/security/sshguard && make install clean BATCH=yes
