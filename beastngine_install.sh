@@ -348,18 +348,18 @@ fi
 # 3. Nginx Compilation (Custom)
 # ==========================================
 # Check if Nginx is already installed
-if pkg info -e nginx-devel 2>/dev/null || pkg info -e nginx 2>/dev/null; then
+if pkg info -e nginx 2>/dev/null; then
     log_warn "Nginx is already installed. Skipping compilation."
-    log_warn "To recompile, run: pkg delete nginx nginx-devel && rerun this script"
+    log_warn "To recompile, run: pkg delete nginx && rerun this script"
 else
     log_info "Compiling Nginx with ModSecurity3 and Brotli..."
 
 # Set Nginx build options using FreeBSD ports syntax
-cd /usr/ports/www/nginx-devel
+cd /usr/ports/www/nginx
 
 # Build with specific options enabled
 make \
-    OPTIONS_SET="BROTLI MODSECURITY3 HTTP HTTPV2 HTTPV3 HTTP_SSL HTTP_REALIP HTTP_ADDITION HTTP_SUB HTTP_DAV HTTP_FLV HTTP_MP4 HTTP_GUNZIP_FILTER HTTP_GZIP_STATIC HTTP_AUTH_REQ HTTP_RANDOM_INDEX HTTP_SECURE_LINK HTTP_DEGRADATION HTTP_SLICE HTTP_STUB_STATUS MAIL MAIL_SSL STREAM STREAM_SSL STREAM_REALIP STREAM_SSL_PREREAD HTTP_GZIP HTTP_REDIS HTTP_IMAGE_FILTER HTTP_XSLT THREADS CACHE_PURGE" \
+    OPTIONS_SET="BROTLI MODSECURITY3 HTTP HTTPV2 HTTPV3 HTTP_SSL HTTP_REALIP HTTP_ADDITION HTTP_SUB HTTP_DAV HTTP_FLV HTTP_MP4 HTTP_GUNZIP_FILTER HTTP_GZIP_STATIC HTTP_AUTH_REQ HTTP_RANDOM_INDEX HTTP_SECURE_LINK HTTP_SLICE HTTP_STATUS MAIL MAIL_SSL STREAM STREAM_SSL STREAM_REALIP STREAM_SSL_PREREAD HTTP_GZIP HTTP_REDIS HTTP_IMAGE_FILTER HTTP_XSLT THREADS CACHE_PURGE" \
     OPTIONS_UNSET="DEBUG DEBUGLOG MAIL_IMAP MAIL_POP3 MAIL_SMTP" \
     install clean BATCH=yes
 
@@ -368,6 +368,7 @@ if [ ! -f "/usr/local/libexec/nginx/ngx_http_modsecurity_module.so" ]; then
     log_warn "ModSecurity module not found. Disabling it in nginx.conf"
     sed -i '' 's/^load_module.*modsecurity_module.so;/# &/' "${SCRIPT_DIR}/assets/nginx.conf"
     sed -i '' 's/^[[:space:]]*modsecurity /# &/' "${SCRIPT_DIR}/assets/nginx.conf"
+    sed -i '' 's/^[[:space:]]*modsecurity_rules_file /# &/' "${SCRIPT_DIR}/assets/nginx.conf"
 fi
 
 # Verify Brotli modules
@@ -383,30 +384,45 @@ fi
 # ==========================================
 log_info "Setting up ModSecurity OWASP CRS..."
 mkdir -p /usr/local/etc/modsecurity
-cd /tmp
-if [ ! -d "owasp-modsecurity-crs" ]; then
+
+# Download OWASP CRS if not exists
+if [ ! -d "/tmp/owasp-modsecurity-crs" ]; then
+    log_info "Downloading OWASP ModSecurity CRS..."
+    cd /tmp
     git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
 fi
-cd owasp-modsecurity-crs
-cp crs-setup.conf.example /usr/local/etc/modsecurity/crs-setup.conf
-mkdir -p /usr/local/etc/modsecurity/crs
-cp rules/* /usr/local/etc/modsecurity/crs/
 
-# Enable Includes
-if ! grep -q "Include.*crs.*conf" /usr/local/etc/modsecurity/modsecurity.conf 2>/dev/null; then
-    echo 'Include "/usr/local/etc/modsecurity/crs/*.conf"' >> /usr/local/etc/modsecurity/modsecurity.conf
+# Copy configuration files
+log_info "Installing ModSecurity rules..."
+cd /tmp/owasp-modsecurity-crs
+cp crs-setup.conf.example /usr/local/etc/modsecurity/crs-setup.conf 2>/dev/null || log_warn "crs-setup.conf.example not found"
+
+# Create rules directory and copy rules
+mkdir -p /usr/local/etc/modsecurity/crs
+if [ -d "rules" ]; then
+    cp -f rules/* /usr/local/etc/modsecurity/crs/ 2>/dev/null || log_warn "Failed to copy some rules"
+else
+    log_warn "Rules directory not found in OWASP CRS"
+fi
+
+# Enable Includes in modsecurity.conf if it exists
+if [ -f "/usr/local/etc/modsecurity/modsecurity.conf" ]; then
+    if ! grep -q "Include.*crs.*conf" /usr/local/etc/modsecurity/modsecurity.conf; then
+        echo 'Include "/usr/local/etc/modsecurity/crs/*.conf"' >> /usr/local/etc/modsecurity/modsecurity.conf
+    fi
+    # Enable Rule Engine
+    sed -i '' 's/^[[:space:]]*SecRuleEngine DetectionOnly/SecRuleEngine On/' /usr/local/etc/modsecurity/modsecurity.conf
+else
+    log_warn "modsecurity.conf not found, skipping ModSecurity configuration"
 fi
 
 # Disable specific rule being problematic
 mv /usr/local/etc/modsecurity/crs/REQUEST-901-INITIALIZATION.conf /usr/local/etc/modsecurity/crs/REQUEST-901-INITIALIZATION.conf_OFF 2>/dev/null || true
 
 # Copy local security configs
-cp "${SCRIPT_DIR}/assets/ip_blacklist.txt" /usr/local/etc/modsecurity/
-cp "${SCRIPT_DIR}/assets/ip_blacklist.conf" /usr/local/etc/modsecurity/
-cp "${SCRIPT_DIR}/assets/unicode.mapping" /usr/local/etc/modsecurity/
-
-# Enable Rule Engine
-sed -i '' 's/^[[:space:]]*SecRuleEngine DetectionOnly/SecRuleEngine On/' /usr/local/etc/modsecurity/modsecurity.conf
+cp "${SCRIPT_DIR}/assets/ip_blacklist.txt" /usr/local/etc/modsecurity/ 2>/dev/null || log_warn "ip_blacklist.txt not found"
+cp "${SCRIPT_DIR}/assets/ip_blacklist.conf" /usr/local/etc/modsecurity/ 2>/dev/null || log_warn "ip_blacklist.conf not found"
+cp "${SCRIPT_DIR}/assets/unicode.mapping" /usr/local/etc/modsecurity/ 2>/dev/null || log_warn "unicode.mapping not found"
 
 # ==========================================
 # 5. Service Configuration (Sysrc)
@@ -548,16 +564,16 @@ if ! /usr/local/sbin/nginx -t 2>&1 | grep -q "successful"; then
     pkill nginx 2>/dev/null || true
     
     # Clean up nginx and modsecurity
-    log_info "Removing nginx-devel and modsecurity3..."
-    pkg delete -y nginx-devel modsecurity3 2>/dev/null || true
+    log_info "Removing nginx and modsecurity3..."
+    pkg delete -y nginx modsecurity3 2>/dev/null || true
     
     # Clean ports
-    cd /usr/ports/www/nginx-devel && make clean 2>/dev/null || true
+    cd /usr/ports/www/nginx && make clean 2>/dev/null || true
     
     # Rebuild nginx WITHOUT ModSecurity
     log_info "Recompiling Nginx without ModSecurity..."
     
-    cd /usr/ports/www/nginx-devel
+    cd /usr/ports/www/nginx
     make \
         OPTIONS_SET="BROTLI HTTP HTTPV2 HTTPV3 HTTP_SSL HTTP_REALIP STREAM STREAM_SSL THREADS" \
         OPTIONS_UNSET="MODSECURITY3 DEBUG" \
@@ -567,6 +583,7 @@ if ! /usr/local/sbin/nginx -t 2>&1 | grep -q "successful"; then
     log_info "Disabling ModSecurity in nginx.conf..."
     sed -i '' 's/^load_module.*modsecurity_module.so;/# &/' /usr/local/etc/nginx/nginx.conf
     sed -i '' 's/^[[:space:]]*modsecurity /# &/' /usr/local/etc/nginx/nginx.conf
+    sed -i '' 's/^[[:space:]]*modsecurity_rules_file /# &/' /usr/local/etc/nginx/nginx.conf
     
     # Test again
     if ! /usr/local/sbin/nginx -t 2>&1 | grep -q "successful"; then
