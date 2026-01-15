@@ -304,8 +304,8 @@ VALID_PHP_EXTS=""
 log_info "Verifying PHP extensions..."
 for ext in $DESIRED_EXTS; do
     PKG_NAME="${PHP_PKG}-${ext}"
-    # Check if package exists using simple search (no regex needed)
-    if pkg search -q -x "^${PKG_NAME}$" >/dev/null 2>&1; then
+    # Check if package exists in repository using rquery (more reliable than search)
+    if pkg rquery -U '%n' | grep -q "^${PKG_NAME}$" 2>/dev/null; then
         VALID_PHP_EXTS="$VALID_PHP_EXTS $PKG_NAME"
     else
         log_warn "PHP extension '$PKG_NAME' not found in repositories. Skipping."
@@ -326,8 +326,13 @@ pkg install -y $VARNISH_PKG valkey
 pkg install -y nano htop libtool automake autoconf curl
 pkg install -y libxml2 libxslt modsecurity3 python binutils pcre libgd
 
-# SSHGuard
-cd /usr/ports/security/sshguard && make install clean BATCH=yes
+# SSHGuard - check if already installed
+if pkg info sshguard >/dev/null 2>&1; then
+    log_warn "SSHGuard is already installed. Skipping compilation."
+else
+    log_info "Installing SSHGuard from ports..."
+    cd /usr/ports/security/sshguard && make install clean BATCH=yes
+fi
 
 # Configure SSHGuard
 if [ -f "${SCRIPT_DIR}/assets/sshguard.conf" ]; then
@@ -341,7 +346,12 @@ fi
 # ==========================================
 # 3. Nginx Compilation (Custom)
 # ==========================================
-log_info "Compiling Nginx with ModSecurity3 and Brotli..."
+# Check if Nginx is already installed
+if pkg info nginx >/dev/null 2>&1; then
+    log_warn "Nginx is already installed. Skipping compilation."
+    log_warn "To recompile, run: pkg delete nginx && rerun this script"
+else
+    log_info "Compiling Nginx with ModSecurity3 and Brotli..."
 
 # Compilation flags
 NGINX_OPTIONS="-D AJP=off -D ARRAYVAR=off -D AWS_AUTH=off -D BROTLI=on -D CACHE_PURGE=on \
@@ -372,6 +382,7 @@ NGINX_OPTIONS="-D AJP=off -D ARRAYVAR=off -D AWS_AUTH=off -D BROTLI=on -D CACHE_
 
 cd /usr/ports/www/nginx-devel
 make $NGINX_OPTIONS install clean BATCH=YES
+fi
 
 # ==========================================
 # 4. ModSecurity OWASP CRS Setup
