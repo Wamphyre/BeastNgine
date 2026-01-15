@@ -66,42 +66,54 @@ choose_version_from_list() {
 }
 
 # Robust Detection with Fallback
+# Robust Detection with Fallback (Broad Search -> Local Filter)
 detect_or_choose() {
     human_name="$1"
-    strict_pattern="$2"
-    broad_pattern="$3"
-    exclusion="$4"
+    search_query="$2"
+    grep_filter="$3"
 
-    # Try strict first (using origin -o to get category/portname, then stripping category)
-    if [ -n "$exclusion" ]; then
-        results=$(pkg search -o -q -x "$strict_pattern" | cut -d/ -f2 | grep -v "$exclusion" | sort -V || true)
-    else
-        results=$(pkg search -o -q -x "$strict_pattern" | cut -d/ -f2 | sort -V || true)
+    # 1. Broad Search: Get everything matching the query (quiet, origin format)
+    # Output format: category/pkgname (e.g. lang/php83)
+    raw_list=$(pkg search -o -q "$search_query" || true)
+
+    if [ -z "$raw_list" ]; then
+        log_error "No packages found for query: $search_query"
     fi
 
-    if [ -n "$results" ]; then
-        # Auto-select highest from strict search
-        echo "$results" | tail -n1
-    else
-        log_warn "Strict detection failed for $human_name. Attempting broader search..." >&2
-        
-        if [ -n "$broad_pattern" ]; then
-            if [ -n "$exclusion" ]; then
-                broad_results=$(pkg search -o -q -x "$broad_pattern" | cut -d/ -f2 | grep -v "$exclusion" | sort -V || true)
-            else
-                broad_results=$(pkg search -o -q -x "$broad_pattern" | cut -d/ -f2 | sort -V || true)
-            fi
+    # 2. Local Filter: Use grep to strictly match what we want
+    # We filter the raw_list (category/pkgname) against the grep_filter
+    candidates=$(echo "$raw_list" | grep "$grep_filter" | cut -d/ -f2 | sort -V | uniq)
 
-            if [ -n "$broad_results" ]; then
-                # Interactive selection
-                # We interpret newline separated list as args
-                choose_version_from_list "$human_name" $broad_results
-            else
-                log_error "No packages found for $human_name (checked strict: $strict_pattern, broad: $broad_pattern)."
-            fi
-        else
-             log_error "No packages found for $human_name."
-        fi
+    if [ -z "$candidates" ]; then
+        log_warn "No suitable $human_name version found after filtering."
+        # Optional: Show raw list? Or just error? 
+        # For now, let's allow interactive choice from the RAW list if filter fails?
+        # That might be too much noise. Let's just fail and ask user to check repos.
+        log_error "Could not detect a valid $human_name package."
+    fi
+
+    # 3. Selection
+    count=$(echo "$candidates" | wc -l)
+    
+    if [ "$count" -eq 1 ]; then
+        # Only one match, use it
+        echo "$candidates"
+    else
+        # Multiple matches.
+        # Strategy: Try to pick the highest version automatically.
+        # If the user wants interactive, we can fallback to that if ambiguity is high, 
+        # but usually highest version is what we want (e.g. php84 over php83).
+        
+        highest=$(echo "$candidates" | tail -n1)
+        
+        # If we want to be safe, we could log that we picked highest?
+        # But this function returns the string for assignment, so we can't log to stdout.
+        # We can log to stderr.
+        log_info "Auto-selected highest version: $highest" >&2
+        echo "$highest"
+        
+        # NOTE: If we wanted to FORCE interaction for multiple choices, we would do:
+        # choose_version_from_list "$human_name" $candidates
     fi
 }
 
@@ -126,7 +138,9 @@ pkg install -y git
 log_info "Detecting latest software versions..."
 
 # PHP Detection
-PHP_PKG=$(detect_or_choose "PHP" '^php[0-9]{2}$' '^php[0-9]+$' 'php[0-9]*-')
+# Query: "php" (broad)
+# Filter: match lines ending with /phpXX (e.g. lang/php83)
+PHP_PKG=$(detect_or_choose "PHP" "php" "\/php[0-9]\{2\}$")
 if [ -z "$PHP_PKG" ]; then
     log_warn "PHP selection failed. Defaulting to php83."
     PHP_PKG="php83"
@@ -135,8 +149,9 @@ PHP_VER=${PHP_PKG#php}
 log_info "Selected PHP Version: $PHP_PKG"
 
 # MariaDB Detection
-# Strict: mariadb1011-server, Broad: mariadb*-server
-MARIADB_SERVER_PKG=$(detect_or_choose "MariaDB Server" '^mariadb[0-9]+-server$' '^mariadb.*-server$')
+# Query: "mariadb"
+# Filter: match lines ending with /mariadbXX-server or /mariadbXXX-server
+MARIADB_SERVER_PKG=$(detect_or_choose "MariaDB Server" "mariadb" "\/mariadb[0-9]\+-server$")
 if [ -z "$MARIADB_SERVER_PKG" ]; then
     log_warn "MariaDB selection failed. Defaulting to mariadb1011-server."
     MARIADB_SERVER_PKG="mariadb1011-server"
@@ -147,7 +162,9 @@ fi
 log_info "Selected MariaDB: $MARIADB_SERVER_PKG"
 
 # Varnish Detection
-VARNISH_PKG=$(detect_or_choose "Varnish" '^varnish[0-9]+$' '^varnish')
+# Query: "varnish"
+# Filter: match lines ending with /varnishX (e.g. www/varnish7)
+VARNISH_PKG=$(detect_or_choose "Varnish" "varnish" "\/varnish[0-9]\+$")
 if [ -z "$VARNISH_PKG" ]; then
     log_warn "Varnish selection failed. Defaulting to varnish7."
     VARNISH_PKG="varnish7"
@@ -155,8 +172,8 @@ fi
 log_info "Selected Varnish: $VARNISH_PKG"
 
 # Certbot Detection
-CERTBOT_PKG=$(detect_or_choose "Certbot" '^py[0-9]+-certbot$' '^py.*-certbot$')
-CERTBOT_NGINX_PKG=$(detect_or_choose "Certbot-Nginx" '^py[0-9]+-certbot-nginx$' '^py.*-certbot-nginx$')
+CERTBOT_PKG=$(detect_or_choose "Certbot" "certbot" "\/py[0-9]\+-certbot$")
+CERTBOT_NGINX_PKG=$(detect_or_choose "Certbot-Nginx" "certbot-nginx" "\/py[0-9]\+-certbot-nginx$")
 if [ -z "$CERTBOT_PKG" ]; then
     CERTBOT_PKG="py39-certbot"
     CERTBOT_NGINX_PKG="py39-certbot-nginx"
