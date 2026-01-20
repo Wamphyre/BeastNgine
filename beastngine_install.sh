@@ -501,6 +501,8 @@ mv /usr/local/etc/nginx/mime.types /usr/local/etc/nginx/mime.types.bk 2>/dev/nul
 cp "${SCRIPT_DIR}/assets/mime.types" /usr/local/etc/nginx/
 
 mkdir -p /usr/local/etc/nginx/conf.d
+mkdir -p /tmp/nginx/cache
+chown -R www:www /tmp/nginx/cache
 
 # Default Vhost
 DOMINIO=$(hostname)
