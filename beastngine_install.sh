@@ -594,20 +594,22 @@ if ! /usr/local/sbin/nginx -t 2>&1 | grep -q "successful"; then
 fi
 
 # Try to start Nginx
-service nginx start
+# Note: Using || true to prevent set -e from exiting on service start failure
+service nginx start || true
 sleep 3
 
 # Verify nginx is actually running by checking for process
 if ! pgrep -q nginx; then
-    log_error "Nginx failed to start. Check logs: tail -f /var/log/nginx/error.log"
+    log_warn "Nginx failed to start. Check logs: tail -f /var/log/nginx/error.log"
+    log_warn "Continuing with installation anyway..."
 else
     log_info "Nginx started successfully"
 fi
 
-service varnishd start
-service valkey start
-service microcode_update start
-service mysql-server start || service mysql-server onestart
+service varnishd start || true
+service valkey start || true
+service microcode_update start || true
+service mysql-server start || service mysql-server onestart || true
 
 sleep 5
 log_info "Securing MariaDB/MySQL..."
